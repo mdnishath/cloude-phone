@@ -1,0 +1,21 @@
+base {
+  log_debug = off;
+  log_info = on;
+  log = "stderr";
+  daemon = off;
+  redirector = iptables;
+}
+
+redsocks {
+  local_ip = 0.0.0.0;
+  local_port = 12345;
+
+  ip = ${PROXY_HOST};
+  port = ${PROXY_PORT};
+
+  // type: socks5 | http-connect
+  type = ${PROXY_TYPE};
+
+  login = "${PROXY_USER}";
+  password = "${PROXY_PASS}";
+}
