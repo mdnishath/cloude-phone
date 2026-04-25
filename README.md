@@ -22,19 +22,25 @@ Full task list: [P0 plan](docs/superpowers/plans/2026-04-20-cloud-android-platfo
 Fresh Ubuntu 22.04 VPS:
 
 ```bash
-git clone <this-repo> /root/cloude-phone && cd /root/cloude-phone
+# 1. Clone + prep
+git clone https://github.com/mdnishath/cloude-phone.git /root/cloude-phone
+cd /root/cloude-phone
 
 sudo bash scripts/p0/prepare-vps.sh
 bash scripts/p0/check-vps.sh             # expect: VPS READY
 bash scripts/p0/build-sidecar.sh
 
-bash scripts/p0/spawn-pair.sh \
-  --proxy-host YOUR.PROXY.HOST \
-  --proxy-port 1080 \
-  --proxy-type socks5 \
-  --proxy-user USER --proxy-pass PASS \
-  --adb-port 40000
+# 2. Configure proxy creds (gitignored, stays local)
+cp .env.example .env
+nano .env                                  # fill PROXY_HOST/PORT/TYPE/USER/PASS
 
+# 3. Pre-flight: verify proxy creds work BEFORE spinning containers
+bash scripts/p0/test-proxy-creds.sh        # expect: OK: proxy credentials work
+
+# 4. Spawn the pair (auto-loads .env)
+bash scripts/p0/spawn-pair.sh              # expect: OK: Android booted in Ns
+
+# 5. Validate
 bash scripts/p0/test-egress-via-proxy.sh p0-sidecar
 bash scripts/p0/test-no-leak.sh p0-sidecar
 ```
@@ -47,6 +53,14 @@ scrcpy -s <VPS_IP>:40000 --max-size 1080
 ```
 
 Cleanup: `bash scripts/p0/cleanup.sh`
+
+### Proxy type cheat-sheet
+
+| Vendor terminology | `PROXY_TYPE` value |
+|---|---|
+| SOCKS5 / SOCKS5h | `socks5` |
+| "HTTPS proxy" / HTTP CONNECT | `http-connect` |
+| Plain HTTP proxy | `http-connect` |
 
 ## Phases ahead
 

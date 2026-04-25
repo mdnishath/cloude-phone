@@ -2,9 +2,8 @@
 # Spawn a sidecar + redroid pair (default P0 names) and wait for Android boot.
 #
 # Usage:
-#   spawn-pair.sh --proxy-host H --proxy-port P --proxy-type socks5|http-connect
-#                 [--proxy-user U --proxy-pass P]
-#                 [--adb-port 40000]
+#   spawn-pair.sh                                            # reads .env
+#   spawn-pair.sh --proxy-host H --proxy-port P ...          # explicit flags override
 set -euo pipefail
 
 PROXY_HOST=""
@@ -13,6 +12,14 @@ PROXY_TYPE=""
 PROXY_USER=""
 PROXY_PASS=""
 ADB_PORT="40000"
+
+# Auto-load .env from repo root if it exists
+ENV_FILE="$(cd "$(dirname "$0")/../.." && pwd)/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  echo "[spawn-pair] loading $ENV_FILE"
+  # shellcheck disable=SC1090
+  set -a; . "$ENV_FILE"; set +a
+fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -26,9 +33,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-: "${PROXY_HOST:?--proxy-host required}"
-: "${PROXY_PORT:?--proxy-port required}"
-: "${PROXY_TYPE:?--proxy-type required}"
+: "${PROXY_HOST:?PROXY_HOST not set (env or --proxy-host)}"
+: "${PROXY_PORT:?PROXY_PORT not set (env or --proxy-port)}"
+: "${PROXY_TYPE:?PROXY_TYPE not set (env or --proxy-type)}"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 

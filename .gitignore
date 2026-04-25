@@ -1,9 +1,10 @@
 # Claude Code / IDE session state
 .claude/
 
-# Env / secrets
+# Env / secrets — keep .env LOCAL only (never commit proxy credentials)
 .env
-.env.*
+.env.local
+.env.production
 !.env.example
 
 # OS
