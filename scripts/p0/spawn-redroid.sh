@@ -36,7 +36,7 @@ done
 : "${NAME:?--name required}"
 : "${SIDECAR:?--sidecar required}"
 
-IMAGE="${REDROID_IMAGE:-redroid/redroid:11.0.0_64only-latest}"
+IMAGE="${REDROID_IMAGE:-redroid/redroid:11.0.0-latest}"
 VOLUME="${NAME}-data"
 
 docker volume create "$VOLUME" >/dev/null
