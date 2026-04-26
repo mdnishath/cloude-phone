@@ -1,0 +1,60 @@
+{
+  "name": "Cloude Phone P1a",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "moby": true
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": false,
+      "installOhMyZsh": false
+    }
+  },
+
+  "forwardPorts": [8000, 5432, 6379],
+  "portsAttributes": {
+    "8000": {
+      "label": "Cloude API",
+      "onAutoForward": "openBrowser",
+      "visibility": "public"
+    },
+    "5432": {
+      "label": "Postgres",
+      "visibility": "private"
+    },
+    "6379": {
+      "label": "Redis",
+      "visibility": "private"
+    }
+  },
+
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postAttachCommand": {
+    "show-creds": "cat /tmp/cloude-creds.txt 2>/dev/null || echo 'Run: bash scripts/p1a/test-stack.sh'"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-azuretools.vscode-docker",
+        "humao.rest-client",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+
+  "remoteUser": "vscode",
+
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "4gb"
+  }
+}

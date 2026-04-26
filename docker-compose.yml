@@ -1,0 +1,93 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: cloude-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cloude}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_local_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-cloude}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cloude} -d ${POSTGRES_DB:-cloude}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: cloude-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build: ./apps/api
+    image: cloude/api:dev
+    container_name: cloude-api
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_ACCESS_TTL_SECONDS: ${JWT_ACCESS_TTL_SECONDS:-900}
+      JWT_REFRESH_TTL_SECONDS: ${JWT_REFRESH_TTL_SECONDS:-2592000}
+      ENCRYPTION_PUBLIC_KEY: ${ENCRYPTION_PUBLIC_KEY}
+      ENCRYPTION_PRIVATE_KEY: ${ENCRYPTION_PRIVATE_KEY}
+      STREAM_TOKEN_SECRET: ${STREAM_TOKEN_SECRET}
+      STREAM_TOKEN_TTL_SECONDS: ${STREAM_TOKEN_TTL_SECONDS:-300}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      ENVIRONMENT: ${ENVIRONMENT:-dev}
+      API_LOG_LEVEL: ${API_LOG_LEVEL:-info}
+    ports:
+      - "8000:8000"
+    command: ["uvicorn", "cloude_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+    restart: unless-stopped
+
+  worker:
+    build: ./apps/api
+    image: cloude/api:dev
+    container_name: cloude-worker
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ENCRYPTION_PUBLIC_KEY: ${ENCRYPTION_PUBLIC_KEY}
+      ENCRYPTION_PRIVATE_KEY: ${ENCRYPTION_PRIVATE_KEY}
+      STREAM_TOKEN_SECRET: ${STREAM_TOKEN_SECRET}
+      ENVIRONMENT: ${ENVIRONMENT:-dev}
+    command: ["arq", "cloude_api.workers.arq_settings.WorkerSettings"]
+    restart: unless-stopped
+
+  web:
+    build: ./apps/web
+    image: cloude/web:dev
+    container_name: cloude-web
+    depends_on:
+      api: { condition: service_started }
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
