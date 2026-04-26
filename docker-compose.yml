@@ -1,0 +1,40 @@
+# Cloude Phone — control-plane services.
+# Per-device redroid + sidecar containers are spawned dynamically by the worker
+# (P1b) and are NOT defined here.
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: cloude-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cloude}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_local_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-cloude}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cloude} -d ${POSTGRES_DB:-cloude}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: cloude-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
