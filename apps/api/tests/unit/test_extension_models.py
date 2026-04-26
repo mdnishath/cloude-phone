@@ -50,3 +50,16 @@ def test_device_model_has_new_columns() -> None:
     # Defaults wired correctly
     assert cols["image_variant"].default.arg == ImageVariant.vanilla
     assert cols["auto_snapshot_enabled"].default.arg is False
+
+
+def test_proxy_model_has_new_columns() -> None:
+    """Proxy gains session_username_template + supports_rotation."""
+    from cloude_api.models.proxy import Proxy
+
+    cols = Proxy.__table__.columns
+    assert "session_username_template" in cols
+    assert "supports_rotation" in cols
+
+    # Default template matches Bright Data convention
+    assert cols["session_username_template"].default.arg == "{user}-session-{session}"
+    assert cols["supports_rotation"].default.arg is True

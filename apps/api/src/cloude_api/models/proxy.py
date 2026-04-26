@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Enum as SAEnum
+from sqlalchemy import Boolean, Enum as SAEnum
 from sqlalchemy import ForeignKey, Integer, LargeBinary, String, func
 from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -35,4 +35,15 @@ class Proxy(Base):
     password_encrypted: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    # --- P1a extension columns (2026-04-26 upgrade design §4.5) ---
+    session_username_template: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        default="{user}-session-{session}",
+        server_default="{user}-session-{session}",
+    )
+    supports_rotation: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
     )
