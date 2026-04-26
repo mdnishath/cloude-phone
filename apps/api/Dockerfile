@@ -15,12 +15,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install deps first (cache layer)
+# Copy source FIRST so pyproject's `setuptools.packages.find where=["src"]`
+# can resolve packages during editable install. Layer cache will still
+# kick in unless src/ contents change, which is fine for our dev loop.
 COPY pyproject.toml ./
+COPY src ./src
+
 RUN pip install --upgrade pip && pip install -e ".[dev]"
 
-# App source
-COPY src ./src
+# Remaining app artifacts
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY scripts ./scripts
