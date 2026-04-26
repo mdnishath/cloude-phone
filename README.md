@@ -62,8 +62,39 @@ Cleanup: `bash scripts/p0/cleanup.sh`
 | "HTTPS proxy" / HTTP CONNECT | `http-connect` |
 | Plain HTTP proxy | `http-connect` |
 
+## Current phase: P1a (Backend Foundation)
+
+P1a stands up the control plane: FastAPI + arq worker + Postgres 16 + Redis 7 in a single `docker-compose.yml`. JWT auth, invite-only signup, full device CRUD with a stub worker that fakes the spawn (real Docker SDK lands in P1b). No frontend yet.
+
+Full task list: [P1a plan](docs/superpowers/plans/2026-04-25-p1a-backend-foundation.md).
+
+### Bring it up locally
+
+```bash
+cp .env.example .env
+# Mint secrets
+python -c "import secrets;print('JWT_SECRET=' + secrets.token_urlsafe(64))" >> .env
+python -c "import secrets;print('STREAM_TOKEN_SECRET=' + secrets.token_urlsafe(64))" >> .env
+# Generate libsodium keypair
+docker compose run --rm api python -m cloude_api.core.encryption keygen >> .env
+
+docker compose up -d --build
+docker compose exec api alembic upgrade head
+docker compose exec api python scripts/seed_profiles.py
+docker compose exec api python scripts/make_invite.py --role admin --ttl-hours 24
+# copy the printed token, then:
+curl -X POST http://localhost:8000/api/v1/auth/redeem-invite \
+  -H 'content-type: application/json' \
+  -d '{"token":"<TOKEN>","email":"you@example.com","password":"choose-a-good-one"}'
+```
+
+API docs: <http://localhost:8000/api/docs>.
+
 ## Phases ahead
 
-- **P1 MVP** — dashboard (Next.js), control-plane API (FastAPI), Postgres, Redis, worker, ws-scrcpy browser streaming, multi-instance orchestration.
-- **P2** — multi-tenant auth, invite redeem flow, per-user quota, billing hooks.
+- **P1a** (this phase) — FastAPI control plane, JWT auth, invite redeem, device CRUD with worker stub.
+- **P1b** — real Docker SDK device spawn, idle reaper, GC cron.
+- **P1c** — Next.js dashboard.
+- **P1d** — ws-scrcpy bridge for in-browser streaming.
+- **P2** — public signup + Stripe + per-plan quotas.
 - **P3+** — scale, hardening, WebRTC upgrade, device profile library.
