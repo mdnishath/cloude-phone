@@ -21,6 +21,13 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
+# Python binary — Ubuntu often has python3 only, no `python` alias
+PY=$(command -v python3 || command -v python)
+if [ -z "$PY" ]; then
+  echo "ERROR: Python 3 not found on PATH. Install: sudo apt install python3"
+  exit 1
+fi
+
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 
 step() { echo -e "\n${YELLOW}▶${NC} $1"; }
@@ -45,20 +52,25 @@ if [ ! -f .env ]; then
   cp .env.example .env
   echo "" >> .env
   echo "# auto-generated $(date)" >> .env
-  python -c "import secrets;print('JWT_SECRET=' + secrets.token_urlsafe(64))" >> .env
-  python -c "import secrets;print('STREAM_TOKEN_SECRET=' + secrets.token_urlsafe(64))" >> .env
+  $PY -c "import secrets;print('JWT_SECRET=' + secrets.token_urlsafe(64))" >> .env
+  $PY -c "import secrets;print('STREAM_TOKEN_SECRET=' + secrets.token_urlsafe(64))" >> .env
   ok "Created .env from template"
 else
   ok ".env already exists, leaving it alone"
 fi
 
-# Generate libsodium keypair if not yet present in .env
-if ! grep -q '^ENCRYPTION_PUBLIC_KEY=[A-Za-z0-9]' .env 2>/dev/null \
-   || grep -q '^ENCRYPTION_PUBLIC_KEY=replace_me' .env 2>/dev/null \
-   || grep -q '^ENCRYPTION_PUBLIC_KEY=AAAA' .env 2>/dev/null; then
-  step "Generate libsodium keypair"
-  KEYS=$(python -m pip install -q pynacl 2>/dev/null && \
-         python -c "import sys;sys.path.insert(0,'apps/api/src');from cloude_api.core.encryption import generate_keypair; pub,priv=generate_keypair(); print(f'ENCRYPTION_PUBLIC_KEY={pub}\nENCRYPTION_PRIVATE_KEY={priv}')")
+# Generate libsodium keypair via Docker if not yet present in .env
+if grep -q '^ENCRYPTION_PUBLIC_KEY=replace_me' .env 2>/dev/null \
+   || grep -q '^ENCRYPTION_PUBLIC_KEY=AAAA' .env 2>/dev/null \
+   || ! grep -qE '^ENCRYPTION_PUBLIC_KEY=[A-Za-z0-9+/=]{40,}' .env 2>/dev/null; then
+  step "Generate libsodium keypair (one-off Docker run with pynacl)"
+  KEYS=$(docker run --rm python:3.11-slim sh -c \
+    'pip install -q pynacl >/dev/null 2>&1 && python -c "
+import nacl.public, base64
+sk = nacl.public.PrivateKey.generate()
+print(\"ENCRYPTION_PUBLIC_KEY=\" + base64.b64encode(bytes(sk.public_key)).decode())
+print(\"ENCRYPTION_PRIVATE_KEY=\" + base64.b64encode(bytes(sk)).decode())
+"')
   # Strip old placeholders, append fresh
   sed -i.bak '/^ENCRYPTION_PUBLIC_KEY=/d;/^ENCRYPTION_PRIVATE_KEY=/d' .env
   echo "$KEYS" >> .env
@@ -118,15 +130,15 @@ PASSWORD="test-password-$(date +%s)"
 REDEEM=$(curl -fsS -X POST http://localhost:8000/api/v1/auth/redeem-invite \
   -H "content-type: application/json" \
   -d "{\"token\":\"$INVITE_TOKEN\",\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}")
-ACCESS=$(echo "$REDEEM" | python -c "import json,sys;print(json.load(sys.stdin)['access'])")
-REFRESH=$(echo "$REDEEM" | python -c "import json,sys;print(json.load(sys.stdin)['refresh'])")
+ACCESS=$(echo "$REDEEM" | $PY -c "import json,sys;print(json.load(sys.stdin)['access'])")
+REFRESH=$(echo "$REDEEM" | $PY -c "import json,sys;print(json.load(sys.stdin)['refresh'])")
 [ -n "$ACCESS" ] || fail "No access token returned"
 ok "Redeemed → access token ${ACCESS:0:20}..."
 
 # --- 8. Hit /me ---------------------------------------------------------
 step "GET /api/v1/me"
 ME=$(curl -fsS http://localhost:8000/api/v1/me -H "authorization: Bearer $ACCESS")
-echo "$ME" | python -m json.tool
+echo "$ME" | $PY -m json.tool
 echo "$ME" | grep -q "\"email\": \"$EMAIL\"" || fail "/me did not return our email"
 echo "$ME" | grep -q '"role": "admin"' || fail "/me did not return role=admin"
 ok "/me works"
@@ -134,9 +146,9 @@ ok "/me works"
 # --- 9. List profiles ---------------------------------------------------
 step "GET /api/v1/device-profiles"
 PROFILES=$(curl -fsS http://localhost:8000/api/v1/device-profiles -H "authorization: Bearer $ACCESS")
-PROFILE_COUNT=$(echo "$PROFILES" | python -c "import json,sys;print(len(json.load(sys.stdin)))")
+PROFILE_COUNT=$(echo "$PROFILES" | $PY -c "import json,sys;print(len(json.load(sys.stdin)))")
 [ "$PROFILE_COUNT" -ge 6 ] || fail "Expected ≥ 6 profiles, got $PROFILE_COUNT"
-PROFILE_ID=$(echo "$PROFILES" | python -c "import json,sys;print(json.load(sys.stdin)[0]['id'])")
+PROFILE_ID=$(echo "$PROFILES" | $PY -c "import json,sys;print(json.load(sys.stdin)[0]['id'])")
 ok "Listed $PROFILE_COUNT profiles, will use $PROFILE_ID"
 
 # --- 10. Create device --------------------------------------------------
@@ -145,8 +157,8 @@ DEVICE=$(curl -fsS -X POST http://localhost:8000/api/v1/devices \
   -H "authorization: Bearer $ACCESS" \
   -H "content-type: application/json" \
   -d "{\"name\":\"smoke-test\",\"profile_id\":\"$PROFILE_ID\"}")
-DEVICE_ID=$(echo "$DEVICE" | python -c "import json,sys;print(json.load(sys.stdin)['id'])")
-DEVICE_STATE=$(echo "$DEVICE" | python -c "import json,sys;print(json.load(sys.stdin)['state'])")
+DEVICE_ID=$(echo "$DEVICE" | $PY -c "import json,sys;print(json.load(sys.stdin)['id'])")
+DEVICE_STATE=$(echo "$DEVICE" | $PY -c "import json,sys;print(json.load(sys.stdin)['state'])")
 [ "$DEVICE_STATE" = "creating" ] || fail "Expected state=creating, got $DEVICE_STATE"
 ok "Device $DEVICE_ID created in state=creating"
 
@@ -154,7 +166,7 @@ ok "Device $DEVICE_ID created in state=creating"
 step "Poll device until state=running (worker stub takes ~2s)"
 for i in $(seq 1 15); do
   STATE=$(curl -fsS http://localhost:8000/api/v1/devices/$DEVICE_ID \
-    -H "authorization: Bearer $ACCESS" | python -c "import json,sys;print(json.load(sys.stdin)['state'])")
+    -H "authorization: Bearer $ACCESS" | $PY -c "import json,sys;print(json.load(sys.stdin)['state'])")
   if [ "$STATE" = "running" ]; then
     ok "Device flipped to running ($i s)"
     break
@@ -167,7 +179,7 @@ done
 step "GET /api/v1/devices/$DEVICE_ID/adb-info"
 ADB=$(curl -fsS http://localhost:8000/api/v1/devices/$DEVICE_ID/adb-info \
   -H "authorization: Bearer $ACCESS")
-echo "$ADB" | python -m json.tool
+echo "$ADB" | $PY -m json.tool
 echo "$ADB" | grep -q '"host": "localhost"' || fail "adb-info host wrong"
 ok "adb-info returned"
 
@@ -175,8 +187,8 @@ ok "adb-info returned"
 step "GET /api/v1/devices/$DEVICE_ID/stream-token"
 TOK=$(curl -fsS http://localhost:8000/api/v1/devices/$DEVICE_ID/stream-token \
   -H "authorization: Bearer $ACCESS")
-echo "$TOK" | python -m json.tool
-SEGMENTS=$(echo "$TOK" | python -c "import json,sys;print(json.load(sys.stdin)['token'].count(':'))")
+echo "$TOK" | $PY -m json.tool
+SEGMENTS=$(echo "$TOK" | $PY -c "import json,sys;print(json.load(sys.stdin)['token'].count(':'))")
 [ "$SEGMENTS" -eq 2 ] || fail "Stream token should have 2 colons, got $SEGMENTS"
 ok "stream-token has 3 segments (HMAC format correct)"
 
@@ -185,7 +197,7 @@ step "POST /api/v1/auth/refresh"
 REFRESHED=$(curl -fsS -X POST http://localhost:8000/api/v1/auth/refresh \
   -H "content-type: application/json" \
   -d "{\"refresh\":\"$REFRESH\"}")
-NEW_ACCESS=$(echo "$REFRESHED" | python -c "import json,sys;print(json.load(sys.stdin)['access'])")
+NEW_ACCESS=$(echo "$REFRESHED" | $PY -c "import json,sys;print(json.load(sys.stdin)['access'])")
 [ -n "$NEW_ACCESS" ] || fail "Refresh did not return new access token"
 ok "Refresh rotation works"
 
