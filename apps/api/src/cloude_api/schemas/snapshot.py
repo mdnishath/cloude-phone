@@ -1,4 +1,5 @@
 """Pydantic schemas for Snapshot. Read schema only in P1a — Create lands in P1c."""
+
 from __future__ import annotations
 
 import uuid

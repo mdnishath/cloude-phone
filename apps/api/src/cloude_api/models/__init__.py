@@ -1,4 +1,5 @@
 """Re-export models so Alembic autogenerate sees them all."""
+
 from cloude_api.models.audit_log import AuditLog
 from cloude_api.models.base import Base
 from cloude_api.models.device import Device

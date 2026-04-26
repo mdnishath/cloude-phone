@@ -5,11 +5,13 @@ Run prerequisites:
     cd apps/api && alembic downgrade base   # reset schema
     INTEGRATION=1 pytest tests/integration/test_extension_migration.py -v
 """
+
 from __future__ import annotations
 
 import os
 import subprocess
 import uuid
+from datetime import UTC
 
 import pytest
 from sqlalchemy import select, text
@@ -41,7 +43,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
 def _alembic(args: list[str]) -> None:
     """Run alembic CLI in apps/api with current env."""
     subprocess.run(
-        ["alembic", *args],
+        ["alembic", *args],  # noqa: S603, S607
         cwd=os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
         check=True,
     )
@@ -63,28 +65,43 @@ def migrated_schema():
 
 async def test_migration_creates_new_enum_types() -> None:
     async with async_session_factory() as db:
-        rows = (await db.execute(text(
-            "SELECT typname FROM pg_type WHERE typname IN "
-            "('image_variant','snapshot_kind','snapshot_state',"
-            "'device_file_op','device_file_state')"
-        ))).all()
+        rows = (
+            await db.execute(
+                text(
+                    "SELECT typname FROM pg_type WHERE typname IN "
+                    "('image_variant','snapshot_kind','snapshot_state',"
+                    "'device_file_op','device_file_state')"
+                )
+            )
+        ).all()
         names = {r[0] for r in rows}
         assert names == {
-            "image_variant", "snapshot_kind", "snapshot_state",
-            "device_file_op", "device_file_state",
+            "image_variant",
+            "snapshot_kind",
+            "snapshot_state",
+            "device_file_op",
+            "device_file_state",
         }
 
 
 async def test_migration_adds_columns_to_devices() -> None:
     async with async_session_factory() as db:
-        rows = (await db.execute(text(
-            "SELECT column_name FROM information_schema.columns "
-            "WHERE table_name='devices'"
-        ))).all()
+        rows = (
+            await db.execute(
+                text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name='devices'"
+                )
+            )
+        ).all()
         cols = {r[0] for r in rows}
         for new in (
-            "image_variant", "current_session_id", "last_known_ip",
-            "last_known_country", "tags", "auto_snapshot_enabled",
+            "image_variant",
+            "current_session_id",
+            "last_known_ip",
+            "last_known_country",
+            "tags",
+            "auto_snapshot_enabled",
         ):
             assert new in cols, f"missing column on devices: {new}"
 
@@ -153,23 +170,23 @@ async def test_orm_round_trip_snapshot_and_device_file() -> None:
         await db.commit()
 
         # Read back, verify enum values + array column
-        loaded_device = (await db.execute(
-            select(Device).where(Device.id == device.id)
-        )).scalar_one()
+        loaded_device = (
+            await db.execute(select(Device).where(Device.id == device.id))
+        ).scalar_one()
         assert loaded_device.image_variant == ImageVariant.daily
         assert loaded_device.tags == ["daily", "test"]
         assert loaded_device.auto_snapshot_enabled is True
 
-        loaded_snap = (await db.execute(
-            select(Snapshot).where(Snapshot.id == snapshot.id)
-        )).scalar_one()
+        loaded_snap = (
+            await db.execute(select(Snapshot).where(Snapshot.id == snapshot.id))
+        ).scalar_one()
         assert loaded_snap.kind == SnapshotKind.manual
         assert loaded_snap.state == SnapshotState.ready
         assert loaded_snap.size_bytes == 1234
 
-        loaded_df = (await db.execute(
-            select(DeviceFile).where(DeviceFile.id == device_file.id)
-        )).scalar_one()
+        loaded_df = (
+            await db.execute(select(DeviceFile).where(DeviceFile.id == device_file.id))
+        ).scalar_one()
         assert loaded_df.op == DeviceFileOp.apk_install
         assert loaded_df.state == DeviceFileState.done
 
@@ -177,7 +194,7 @@ async def test_orm_round_trip_snapshot_and_device_file() -> None:
 async def test_invite_quota_instances_default() -> None:
     """Insert an invite without specifying quota_instances → server default 3."""
     async with async_session_factory() as db:
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
 
         admin = User(
             id=uuid.uuid4(),
@@ -188,15 +205,13 @@ async def test_invite_quota_instances_default() -> None:
         invite = Invite(
             id=uuid.uuid4(),
             token_hash="a" * 64,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            expires_at=datetime.now(UTC) + timedelta(days=7),
             created_by=admin.id,
         )
         db.add_all([admin, invite])
         await db.commit()
 
-        loaded = (await db.execute(
-            select(Invite).where(Invite.id == invite.id)
-        )).scalar_one()
+        loaded = (await db.execute(select(Invite).where(Invite.id == invite.id))).scalar_one()
         assert loaded.quota_instances == 3
 
 
@@ -220,8 +235,6 @@ async def test_proxy_session_template_default() -> None:
         db.add_all([user, proxy])
         await db.commit()
 
-        loaded = (await db.execute(
-            select(Proxy).where(Proxy.id == proxy.id)
-        )).scalar_one()
+        loaded = (await db.execute(select(Proxy).where(Proxy.id == proxy.id))).scalar_one()
         assert loaded.session_username_template == "{user}-session-{session}"
         assert loaded.supports_rotation is True

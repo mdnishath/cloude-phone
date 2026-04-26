@@ -1,5 +1,8 @@
 """Unit tests for P1a extension models + enums (no DB required)."""
+
 from __future__ import annotations
+
+from datetime import UTC
 
 
 def test_image_variant_enum_values() -> None:
@@ -80,12 +83,19 @@ def test_snapshot_model_shape() -> None:
 
     cols = Snapshot.__table__.columns
     expected = {
-        "id", "device_id", "user_id", "name", "kind", "size_bytes",
-        "local_path", "s3_key", "state", "error_msg", "created_at",
+        "id",
+        "device_id",
+        "user_id",
+        "name",
+        "kind",
+        "size_bytes",
+        "local_path",
+        "s3_key",
+        "state",
+        "error_msg",
+        "created_at",
     }
-    assert expected.issubset(set(cols.keys())), (
-        f"missing: {expected - set(cols.keys())}"
-    )
+    assert expected.issubset(set(cols.keys())), f"missing: {expected - set(cols.keys())}"
     # Indexes
     index_names = {idx.name for idx in Snapshot.__table__.indexes}
     assert "ix_snapshots_device_created" in index_names
@@ -97,12 +107,19 @@ def test_device_file_model_shape() -> None:
 
     cols = DeviceFile.__table__.columns
     expected = {
-        "id", "device_id", "user_id", "op", "filename", "phone_path",
-        "size_bytes", "state", "error_msg", "created_at", "completed_at",
+        "id",
+        "device_id",
+        "user_id",
+        "op",
+        "filename",
+        "phone_path",
+        "size_bytes",
+        "state",
+        "error_msg",
+        "created_at",
+        "completed_at",
     }
-    assert expected.issubset(set(cols.keys())), (
-        f"missing: {expected - set(cols.keys())}"
-    )
+    assert expected.issubset(set(cols.keys())), f"missing: {expected - set(cols.keys())}"
 
 
 def test_models_package_exports_new_models() -> None:
@@ -118,7 +135,7 @@ def test_models_package_exports_new_models() -> None:
 def test_snapshot_read_schema_round_trip() -> None:
     """SnapshotRead pydantic model accepts an ORM-shaped dict."""
     import uuid
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from cloude_api.enums import SnapshotKind, SnapshotState
     from cloude_api.schemas.snapshot import SnapshotRead
@@ -134,7 +151,7 @@ def test_snapshot_read_schema_round_trip() -> None:
         "s3_key": None,
         "state": SnapshotState.ready,
         "error_msg": None,
-        "created_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(UTC),
     }
     read = SnapshotRead.model_validate(payload)
     assert read.kind == SnapshotKind.manual
@@ -144,7 +161,7 @@ def test_snapshot_read_schema_round_trip() -> None:
 def test_device_file_read_schema_round_trip() -> None:
     """DeviceFileRead pydantic model accepts an ORM-shaped dict."""
     import uuid
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from cloude_api.enums import DeviceFileOp, DeviceFileState
     from cloude_api.schemas.device_file import DeviceFileRead
@@ -159,8 +176,8 @@ def test_device_file_read_schema_round_trip() -> None:
         "size_bytes": 4096,
         "state": DeviceFileState.done,
         "error_msg": None,
-        "created_at": datetime.now(timezone.utc),
-        "completed_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(UTC),
+        "completed_at": datetime.now(UTC),
     }
     read = DeviceFileRead.model_validate(payload)
     assert read.op == DeviceFileOp.apk_install

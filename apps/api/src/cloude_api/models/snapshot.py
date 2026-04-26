@@ -4,13 +4,14 @@ A snapshot is a compressed (zstd) tarball stored at ``local_path`` on the
 host. ``s3_key`` is populated only when the user has S3/B2 backup enabled
 (P1d) and the snapshot has been uploaded.
 """
+
 from __future__ import annotations
 
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Enum as SAEnum
-from sqlalchemy import ForeignKey, Index, String, Text, func
+from sqlalchemy import BigInteger, ForeignKey, Index, String, Text, func
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -21,9 +22,7 @@ from cloude_api.models.base import Base
 class Snapshot(Base):
     __tablename__ = "snapshots"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     device_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("devices.id", ondelete="CASCADE"),
@@ -52,6 +51,4 @@ class Snapshot(Base):
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
 
-    __table_args__ = (
-        Index("ix_snapshots_device_created", "device_id", "created_at"),
-    )
+    __table_args__ = (Index("ix_snapshots_device_created", "device_id", "created_at"),)
