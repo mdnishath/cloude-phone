@@ -1,6 +1,10 @@
-"""Auth routes: login, refresh, redeem-invite."""
+"""Auth routes: login, refresh, redeem-invite.
 
-from __future__ import annotations
+Note: NO ``from __future__ import annotations`` here — slowapi's
+``@limiter.limit`` decorator wraps the function and FastAPI can't
+resolve string-form forward references for body params through the
+wrapper. With concrete annotations FastAPI introspects directly.
+"""
 
 import uuid
 from datetime import UTC, datetime
