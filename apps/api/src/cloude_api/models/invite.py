@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, String, func
+from sqlalchemy import ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -32,4 +32,9 @@ class Invite(Base):
     )
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    # --- P1a extension column (2026-04-26 upgrade design §4.3) ---
+    quota_instances: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=3, server_default="3"
     )

@@ -63,3 +63,12 @@ def test_proxy_model_has_new_columns() -> None:
     # Default template matches Bright Data convention
     assert cols["session_username_template"].default.arg == "{user}-session-{session}"
     assert cols["supports_rotation"].default.arg is True
+
+
+def test_invite_model_has_quota_column() -> None:
+    """Invite carries the quota the redeemed user inherits."""
+    from cloude_api.models.invite import Invite
+
+    cols = Invite.__table__.columns
+    assert "quota_instances" in cols
+    assert cols["quota_instances"].default.arg == 3
