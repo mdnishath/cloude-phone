@@ -113,3 +113,55 @@ def test_models_package_exports_new_models() -> None:
     assert hasattr(m, "DeviceFile")
     assert "Snapshot" in m.__all__
     assert "DeviceFile" in m.__all__
+
+
+def test_snapshot_read_schema_round_trip() -> None:
+    """SnapshotRead pydantic model accepts an ORM-shaped dict."""
+    import uuid
+    from datetime import datetime, timezone
+
+    from cloude_api.enums import SnapshotKind, SnapshotState
+    from cloude_api.schemas.snapshot import SnapshotRead
+
+    payload = {
+        "id": uuid.uuid4(),
+        "device_id": uuid.uuid4(),
+        "user_id": uuid.uuid4(),
+        "name": "manual-1",
+        "kind": SnapshotKind.manual,
+        "size_bytes": 1234,
+        "local_path": "/x/y.tar.zst",
+        "s3_key": None,
+        "state": SnapshotState.ready,
+        "error_msg": None,
+        "created_at": datetime.now(timezone.utc),
+    }
+    read = SnapshotRead.model_validate(payload)
+    assert read.kind == SnapshotKind.manual
+    assert read.state == SnapshotState.ready
+
+
+def test_device_file_read_schema_round_trip() -> None:
+    """DeviceFileRead pydantic model accepts an ORM-shaped dict."""
+    import uuid
+    from datetime import datetime, timezone
+
+    from cloude_api.enums import DeviceFileOp, DeviceFileState
+    from cloude_api.schemas.device_file import DeviceFileRead
+
+    payload = {
+        "id": uuid.uuid4(),
+        "device_id": uuid.uuid4(),
+        "user_id": uuid.uuid4(),
+        "op": DeviceFileOp.apk_install,
+        "filename": "app.apk",
+        "phone_path": None,
+        "size_bytes": 4096,
+        "state": DeviceFileState.done,
+        "error_msg": None,
+        "created_at": datetime.now(timezone.utc),
+        "completed_at": datetime.now(timezone.utc),
+    }
+    read = DeviceFileRead.model_validate(payload)
+    assert read.op == DeviceFileOp.apk_install
+    assert read.state == DeviceFileState.done
