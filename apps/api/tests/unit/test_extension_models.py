@@ -103,3 +103,13 @@ def test_device_file_model_shape() -> None:
     assert expected.issubset(set(cols.keys())), (
         f"missing: {expected - set(cols.keys())}"
     )
+
+
+def test_models_package_exports_new_models() -> None:
+    """models/__init__.py must export Snapshot + DeviceFile so Alembic sees them."""
+    import cloude_api.models as m
+
+    assert hasattr(m, "Snapshot")
+    assert hasattr(m, "DeviceFile")
+    assert "Snapshot" in m.__all__
+    assert "DeviceFile" in m.__all__
