@@ -3,10 +3,11 @@
 End-to-end CRUD is covered by the integration test (Task 30+). Here we just
 prove the to-public mapper masks passwords correctly.
 """
+
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from cloude_api.api.proxies import _to_public
 from cloude_api.enums import ProxyType
@@ -24,7 +25,7 @@ def _make(password: bytes | None) -> Proxy:
         username="u",
         password_encrypted=password,
     )
-    p.created_at = datetime.now(tz=timezone.utc)
+    p.created_at = datetime.now(tz=UTC)
     return p
 
 

@@ -1,4 +1,5 @@
 """ASGI entrypoint. Run via: `uvicorn cloude_api.main:app`."""
+
 from __future__ import annotations
 
 import logging
@@ -62,9 +63,15 @@ def _envelope(code: str, message: str, details: dict[str, Any] | None = None) ->
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
     code_map = {
-        400: "bad_request", 401: "unauthorized", 402: "payment_required",
-        403: "forbidden", 404: "not_found", 409: "conflict", 410: "gone",
-        429: "rate_limited", 500: "internal_error",
+        400: "bad_request",
+        401: "unauthorized",
+        402: "payment_required",
+        403: "forbidden",
+        404: "not_found",
+        409: "conflict",
+        410: "gone",
+        429: "rate_limited",
+        500: "internal_error",
     }
     code = code_map.get(exc.status_code, "error")
     detail_obj = exc.detail if isinstance(exc.detail, dict) else None
@@ -78,7 +85,9 @@ async def validation_exception_handler(
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content=_envelope("validation_error", "request validation failed", {"errors": exc.errors()}),
+        content=_envelope(
+            "validation_error", "request validation failed", {"errors": exc.errors()}
+        ),
     )
 
 

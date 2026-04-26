@@ -1,4 +1,5 @@
 """Password hashing (argon2id) + JWT issue/decode (HS256)."""
+
 from __future__ import annotations
 
 import time
@@ -12,8 +13,8 @@ from cloude_api.config import get_settings
 
 _pwd = CryptContext(schemes=["argon2"], deprecated="auto")
 
-ACCESS_TOKEN_TYPE = "access"
-REFRESH_TOKEN_TYPE = "refresh"
+ACCESS_TOKEN_TYPE = "access"  # noqa: S105
+REFRESH_TOKEN_TYPE = "refresh"  # noqa: S105
 
 
 def _now() -> int:

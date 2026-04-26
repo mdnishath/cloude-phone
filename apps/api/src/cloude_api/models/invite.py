@@ -1,4 +1,5 @@
 """Single-use invite token. Admin mints; user redeems to create account."""
+
 from __future__ import annotations
 
 import uuid
@@ -16,9 +17,7 @@ from cloude_api.models.base import Base
 class Invite(Base):
     __tablename__ = "invites"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     role: Mapped[UserRole] = mapped_column(

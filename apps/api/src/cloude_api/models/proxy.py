@@ -1,4 +1,5 @@
 """User-owned proxy config. password_encrypted is libsodium sealed box."""
+
 from __future__ import annotations
 
 import uuid
@@ -16,9 +17,7 @@ from cloude_api.models.base import Base
 class Proxy(Base):
     __tablename__ = "proxies"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),

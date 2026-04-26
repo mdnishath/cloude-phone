@@ -1,4 +1,5 @@
 """Audit-log writer. Always called within an existing session/transaction."""
+
 from __future__ import annotations
 
 import uuid

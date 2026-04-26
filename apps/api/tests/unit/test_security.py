@@ -1,4 +1,5 @@
 """Tests for password hashing + JWT issue/decode."""
+
 from __future__ import annotations
 
 import time

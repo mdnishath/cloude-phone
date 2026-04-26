@@ -1,4 +1,5 @@
 """Publish + subscribe helpers for `ws:device:{id}` channel."""
+
 from __future__ import annotations
 
 import json

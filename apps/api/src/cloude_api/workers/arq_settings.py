@@ -1,5 +1,8 @@
 """arq WorkerSettings — picked up by `arq cloude_api.workers.arq_settings.WorkerSettings`."""
+
 from __future__ import annotations
+
+from typing import ClassVar
 
 from arq.connections import RedisSettings
 
@@ -12,7 +15,7 @@ def _redis_settings() -> RedisSettings:
 
 
 class WorkerSettings:
-    functions = [create_device_stub]
+    functions: ClassVar[list[object]] = [create_device_stub]
     on_startup = _on_startup
     on_shutdown = _on_shutdown
     redis_settings = _redis_settings()

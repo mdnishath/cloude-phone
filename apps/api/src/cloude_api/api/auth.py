@@ -1,9 +1,9 @@
 """Auth routes: login, refresh, redeem-invite."""
+
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Annotated
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Request, status
 from jose import JWTError
@@ -61,7 +61,7 @@ async def refresh_tokens(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="refresh reused")
 
     s = get_settings()
-    ttl = max(int(exp) - int(datetime.now(tz=timezone.utc).timestamp()), 0) or s.jwt_refresh_ttl_seconds
+    ttl = max(int(exp) - int(datetime.now(tz=UTC).timestamp()), 0) or s.jwt_refresh_ttl_seconds
     added = await auth_core.revoke_refresh(redis, jti, ttl_seconds=ttl)
     if not added:
         # Race lost — another concurrent request claimed it first.
@@ -82,14 +82,12 @@ async def refresh_tokens(
 
 @router.post("/redeem-invite", response_model=TokenPair, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
-async def redeem_invite(
-    request: Request, body: RedeemInviteRequest, db: DbSession
-) -> TokenPair:
+async def redeem_invite(request: Request, body: RedeemInviteRequest, db: DbSession) -> TokenPair:
     token_hash = auth_core.hash_invite_token(body.token)
     invite = await db.scalar(select(Invite).where(Invite.token_hash == token_hash))
     if invite is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="invalid invite")
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     if invite.redeemed_at is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="already redeemed")
     if invite.expires_at < now:

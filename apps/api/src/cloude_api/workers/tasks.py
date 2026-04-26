@@ -5,6 +5,7 @@ allocate ADB port, render proxy creds, spawn sidecar, spawn redroid,
 poll boot-complete, update DB, publish state. For now we prove the
 queue + state-transition + pub/sub fan-out works end-to-end.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -12,12 +13,11 @@ import json
 import logging
 import random
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select
-
 import redis.asyncio as aioredis
+from sqlalchemy import select
 
 from cloude_api.config import get_settings
 from cloude_api.db import async_session_factory
@@ -57,8 +57,9 @@ async def create_device_stub(ctx: dict[str, Any], device_id_str: str) -> dict[st
             return {"ok": True, "noop": True, "state": d.state.value}
 
         d.state = DeviceState.running
-        d.started_at = datetime.now(tz=timezone.utc)
-        d.adb_host_port = random.randint(40000, 49999)  # P1b: real port allocator + actual binding
+        d.started_at = datetime.now(tz=UTC)
+        # P1b: real port allocator + actual binding
+        d.adb_host_port = random.randint(40000, 49999)  # noqa: S311
         d.redroid_container_id = f"stub-redroid-{device_id.hex[:12]}"
         d.sidecar_container_id = f"stub-sidecar-{device_id.hex[:12]}"
         await db.commit()

@@ -1,4 +1,5 @@
 """GET /device-profiles — list available profiles for current user."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter

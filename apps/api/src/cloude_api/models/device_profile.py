@@ -1,4 +1,5 @@
 """Hardware template chosen at device-create time."""
+
 from __future__ import annotations
 
 import uuid
@@ -14,9 +15,7 @@ from cloude_api.models.base import Base
 class DeviceProfile(Base):
     __tablename__ = "device_profiles"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     android_version: Mapped[str] = mapped_column(String(8), nullable=False, default="11")
     screen_width: Mapped[int] = mapped_column(Integer, nullable=False)

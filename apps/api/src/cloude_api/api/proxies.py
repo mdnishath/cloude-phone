@@ -1,4 +1,5 @@
 """Proxy CRUD. Passwords encrypted at rest with libsodium sealed box."""
+
 from __future__ import annotations
 
 import uuid
@@ -32,7 +33,11 @@ def _to_public(p: Proxy) -> ProxyPublic:
 @router.post("", response_model=ProxyPublic, status_code=status.HTTP_201_CREATED)
 async def create_proxy(body: ProxyCreate, current: CurrentUser, db: DbSession) -> ProxyPublic:
     s = get_settings()
-    enc = encrypt_password(body.password or "", pub_b64=s.encryption_public_key) if body.password else None
+    enc = (
+        encrypt_password(body.password or "", pub_b64=s.encryption_public_key)
+        if body.password
+        else None
+    )
     p = Proxy(
         id=uuid.uuid4(),
         user_id=current.id,

@@ -4,12 +4,13 @@ Usage examples:
   python scripts/make_invite.py --role admin --ttl-hours 48
   python scripts/make_invite.py --email new@user.com --role user
 """
+
 from __future__ import annotations
 
 import argparse
 import asyncio
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from cloude_api.core.auth import generate_invite_token, hash_invite_token
 from cloude_api.db import async_session_factory
@@ -33,7 +34,7 @@ async def main() -> None:
         token_hash=hash_invite_token(raw),
         email=args.email,
         role=UserRole(args.role),
-        expires_at=datetime.now(tz=timezone.utc) + timedelta(hours=args.ttl_hours),
+        expires_at=datetime.now(tz=UTC) + timedelta(hours=args.ttl_hours),
     )
     async with async_session_factory() as db:
         db.add(invite)
@@ -47,9 +48,10 @@ async def main() -> None:
     print(f"  token:  {raw}")
     print("")
     print("Give the user this curl to redeem:")
-    print(f'  curl -X POST http://localhost:8000/api/v1/auth/redeem-invite \\')
-    print(f'    -H "content-type: application/json" \\')
-    print(f"    -d '{{\"token\":\"{raw}\",\"email\":\"USER@EXAMPLE.COM\",\"password\":\"choose-strong-pw\"}}'")
+    print("  curl -X POST http://localhost:8000/api/v1/auth/redeem-invite \\")
+    print('    -H "content-type: application/json" \\')
+    body = f'{{"token":"{raw}","email":"USER@EXAMPLE.COM","password":"choose-strong-pw"}}'
+    print(f"    -d '{body}'")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 """WS /ws/devices/{id}/status — push state transitions to dashboard."""
+
 from __future__ import annotations
 
 import asyncio
@@ -25,9 +26,7 @@ async def _authenticate(token: str) -> uuid.UUID:
 
 
 @router.websocket("/ws/devices/{device_id}/status")
-async def device_status_ws(
-    ws: WebSocket, device_id: uuid.UUID, token: str = Query(...)
-) -> None:
+async def device_status_ws(ws: WebSocket, device_id: uuid.UUID, token: str = Query(...)) -> None:
     try:
         user_id = await _authenticate(token)
     except (JWTError, ValueError, KeyError):
@@ -35,20 +34,20 @@ async def device_status_ws(
         return
 
     async with async_session_factory() as db:
-        d = await db.scalar(
-            select(Device).where(Device.id == device_id, Device.user_id == user_id)
-        )
+        d = await db.scalar(select(Device).where(Device.id == device_id, Device.user_id == user_id))
         if d is None:
             await ws.close(code=status.WS_1008_POLICY_VIOLATION)
             return
         await ws.accept()
         # Push current snapshot first
-        await ws.send_json({
-            "device_id": str(d.id),
-            "state": d.state.value,
-            "state_reason": d.state_reason,
-            "adb_host_port": d.adb_host_port,
-        })
+        await ws.send_json(
+            {
+                "device_id": str(d.id),
+                "state": d.state.value,
+                "state_reason": d.state_reason,
+                "adb_host_port": d.adb_host_port,
+            }
+        )
 
     redis = get_redis()
     pubsub = redis.pubsub()

@@ -11,11 +11,12 @@ The test:
      the state-transition + pub/sub contract).
   6. Asserts state is `running` and adb_host_port is set.
 """
+
 from __future__ import annotations
 
 import os
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import redis.asyncio as aioredis
@@ -31,7 +32,6 @@ from cloude_api.models.device import Device
 from cloude_api.models.device_profile import DeviceProfile
 from cloude_api.models.invite import Invite
 from cloude_api.workers.tasks import create_device_stub
-
 
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
 
@@ -49,9 +49,13 @@ async def seed_profile() -> DeviceProfile:
         prof = DeviceProfile(
             id=uuid.uuid4(),
             name=f"int-test-{uuid.uuid4().hex[:6]}",
-            screen_width=1080, screen_height=2340, screen_dpi=440,
-            ram_mb=4096, cpu_cores=4,
-            manufacturer="Google", model="Pixel 5",
+            screen_width=1080,
+            screen_height=2340,
+            screen_dpi=440,
+            ram_mb=4096,
+            cpu_cores=4,
+            manufacturer="Google",
+            model="Pixel 5",
             is_public=True,
         )
         db.add(prof)
@@ -72,7 +76,7 @@ async def test_invite_to_running_smoke(client: AsyncClient, seed_profile: Device
                 token_hash=hash_invite_token(raw),
                 email=None,
                 role=UserRole.user,
-                expires_at=datetime.now(tz=timezone.utc) + timedelta(hours=1),
+                expires_at=datetime.now(tz=UTC) + timedelta(hours=1),
             )
         )
         await db.commit()

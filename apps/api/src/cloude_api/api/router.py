@@ -1,4 +1,5 @@
 """Mount all v1 routers under /api/v1."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter

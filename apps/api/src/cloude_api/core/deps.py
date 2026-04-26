@@ -1,4 +1,5 @@
 """FastAPI dependencies: DB session, Redis client, current user."""
+
 from __future__ import annotations
 
 import uuid

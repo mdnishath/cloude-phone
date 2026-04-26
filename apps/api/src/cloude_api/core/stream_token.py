@@ -8,6 +8,7 @@ Single-use enforcement (Redis SETNX `stream:nonce:<nonce>` with TTL) lives in
 the websocket route — not here, because nonce-store testing belongs in the
 integration suite where Redis is real.
 """
+
 from __future__ import annotations
 
 import base64
@@ -47,7 +48,7 @@ def _b64d(s: str) -> bytes:
 def issue(device_id: str) -> str:
     s = get_settings()
     exp = _now() + s.stream_token_ttl_seconds
-    head_raw = f"{device_id}|{exp}".encode("utf-8")
+    head_raw = f"{device_id}|{exp}".encode()
     nonce = secrets.token_bytes(16)
     msg = head_raw + b"|" + nonce
     sig = hmac.new(s.stream_token_secret.encode("utf-8"), msg, hashlib.sha256).digest()

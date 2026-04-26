@@ -1,4 +1,5 @@
 """Async engine + session factory. One engine per process."""
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
