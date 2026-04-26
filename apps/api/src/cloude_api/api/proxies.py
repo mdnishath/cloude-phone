@@ -66,7 +66,7 @@ async def list_proxies(current: CurrentUser, db: DbSession) -> list[ProxyPublic]
     return [_to_public(p) for p in rows]
 
 
-@router.delete("/{proxy_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{proxy_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_proxy(proxy_id: uuid.UUID, current: CurrentUser, db: DbSession) -> None:
     p = await db.scalar(select(Proxy).where(Proxy.id == proxy_id, Proxy.user_id == current.id))
     if p is None:

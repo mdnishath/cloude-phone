@@ -134,7 +134,7 @@ async def stop_device(device_id: uuid.UUID, current: CurrentUser, db: DbSession)
     return DevicePublic.model_validate(d)
 
 
-@router.delete("/{device_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{device_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_device(device_id: uuid.UUID, current: CurrentUser, db: DbSession) -> None:
     d = await _get_owned(db, device_id, current.id)
     d.state = DeviceState.deleted
