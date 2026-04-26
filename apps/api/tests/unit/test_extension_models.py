@@ -31,3 +31,22 @@ def test_device_file_state_enum_values() -> None:
     from cloude_api.enums import DeviceFileState
 
     assert {v.value for v in DeviceFileState} == {"pending", "running", "done", "error"}
+
+
+def test_device_model_has_new_columns() -> None:
+    """Device gains image_variant, current_session_id, last_known_ip,
+    last_known_country, tags, auto_snapshot_enabled."""
+    from cloude_api.enums import ImageVariant
+    from cloude_api.models.device import Device
+
+    cols = Device.__table__.columns
+    assert "image_variant" in cols
+    assert "current_session_id" in cols
+    assert "last_known_ip" in cols
+    assert "last_known_country" in cols
+    assert "tags" in cols
+    assert "auto_snapshot_enabled" in cols
+
+    # Defaults wired correctly
+    assert cols["image_variant"].default.arg == ImageVariant.vanilla
+    assert cols["auto_snapshot_enabled"].default.arg is False
