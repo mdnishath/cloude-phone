@@ -76,6 +76,18 @@ services:
     command: ["arq", "cloude_api.workers.arq_settings.WorkerSettings"]
     restart: unless-stopped
 
+  web:
+    build: ./apps/web
+    image: cloude/web:dev
+    container_name: cloude-web
+    depends_on:
+      api: { condition: service_started }
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
 volumes:
   pgdata:
   redisdata:
