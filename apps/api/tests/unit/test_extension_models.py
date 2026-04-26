@@ -72,3 +72,34 @@ def test_invite_model_has_quota_column() -> None:
     cols = Invite.__table__.columns
     assert "quota_instances" in cols
     assert cols["quota_instances"].default.arg == 3
+
+
+def test_snapshot_model_shape() -> None:
+    """Snapshot has all columns from design spec §4.2."""
+    from cloude_api.models.snapshot import Snapshot
+
+    cols = Snapshot.__table__.columns
+    expected = {
+        "id", "device_id", "user_id", "name", "kind", "size_bytes",
+        "local_path", "s3_key", "state", "error_msg", "created_at",
+    }
+    assert expected.issubset(set(cols.keys())), (
+        f"missing: {expected - set(cols.keys())}"
+    )
+    # Indexes
+    index_names = {idx.name for idx in Snapshot.__table__.indexes}
+    assert "ix_snapshots_device_created" in index_names
+
+
+def test_device_file_model_shape() -> None:
+    """DeviceFile has all columns from design spec §4.4."""
+    from cloude_api.models.device_file import DeviceFile
+
+    cols = DeviceFile.__table__.columns
+    expected = {
+        "id", "device_id", "user_id", "op", "filename", "phone_path",
+        "size_bytes", "state", "error_msg", "created_at", "completed_at",
+    }
+    assert expected.issubset(set(cols.keys())), (
+        f"missing: {expected - set(cols.keys())}"
+    )
