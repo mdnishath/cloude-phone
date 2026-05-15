@@ -1,6 +1,6 @@
 """Auth routes: login, refresh, redeem-invite."""
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Request, status
 from jose import JWTError
@@ -59,7 +59,7 @@ async def refresh_tokens(
 
     s = get_settings()
     ttl = (
-        max(int(exp) - int(datetime.now(tz=timezone.UTC).timestamp()), 0)
+        max(int(exp) - int(datetime.now(tz=UTC).timestamp()), 0)
         or s.jwt_refresh_ttl_seconds
     )
     added = await auth_core.revoke_refresh(redis, jti, ttl_seconds=ttl)
@@ -89,7 +89,7 @@ async def redeem_invite(
     invite = await db.scalar(select(Invite).where(Invite.token_hash == token_hash))
     if invite is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="invalid invite")
-    now = datetime.now(tz=timezone.UTC)
+    now = datetime.now(tz=UTC)
     if invite.redeemed_at is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="already redeemed")
     if invite.expires_at < now:
