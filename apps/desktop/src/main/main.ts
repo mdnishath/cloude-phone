@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import { join } from 'node:path';
+import { registerAuthIpc } from './ipc';
 
 const createWindow = (): void => {
   const win = new BrowserWindow({
@@ -20,7 +21,10 @@ const createWindow = (): void => {
   }
 };
 
-void app.whenReady().then(createWindow);
+void app.whenReady().then(() => {
+  registerAuthIpc();
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
