@@ -62,39 +62,38 @@ Cleanup: `bash scripts/p0/cleanup.sh`
 | "HTTPS proxy" / HTTP CONNECT | `http-connect` |
 | Plain HTTP proxy | `http-connect` |
 
-## Current phase: P1a (Backend Foundation)
+## Current phase: P1b (Real Device Spawn)
 
-P1a stands up the control plane: FastAPI + arq worker + Postgres 16 + Redis 7 in a single `docker-compose.yml`. JWT auth, invite-only signup, full device CRUD with a stub worker that fakes the spawn (real Docker SDK lands in P1b). No frontend yet.
+P1b replaces the P1a `create_device_stub` worker job with a real Docker-driven spawn flow: an arq worker brings up a sidecar (proxy + iptables) and a redroid (Android 11) container per device, allocates an ADB port from a Redis-backed free-set, and waits for `sys.boot_completed`. Stop/delete tear the pair down and release the port. A 60s cron reaps devices stuck in `creating` for more than 3 minutes. Per-device Docker named volume keeps installed apps/data across stop/start.
 
-Full task list: [P1a plan](docs/superpowers/plans/2026-04-25-p1a-backend-foundation.md).
+**Breaking API change vs P1a:** `POST /api/v1/devices` now REQUIRES `proxy_id` (was optional). No-proxy mode lands in a later phase.
 
-### Bring it up locally
+Full task list: [P1b plan](docs/superpowers/plans/2026-05-15-p1b-real-device-spawn.md). Design: [P1b spec](docs/superpowers/specs/2026-05-15-p1b-real-device-spawn-design.md).
+
+### Bring it up locally (WSL2 with binder loaded)
 
 ```bash
 cp .env.example .env
-# Mint secrets
+# Fill PROXY_HOST/PORT/TYPE/USER/PASS (the same proxy you validated with P0).
 python -c "import secrets;print('JWT_SECRET=' + secrets.token_urlsafe(64))" >> .env
 python -c "import secrets;print('STREAM_TOKEN_SECRET=' + secrets.token_urlsafe(64))" >> .env
-# Generate libsodium keypair
 docker compose run --rm api python -m cloude_api.core.encryption keygen >> .env
 
 docker compose up -d --build
 docker compose exec api alembic upgrade head
 docker compose exec api python scripts/seed_profiles.py
 docker compose exec api python scripts/make_invite.py --role admin --ttl-hours 24
-# copy the printed token, then:
-curl -X POST http://localhost:8000/api/v1/auth/redeem-invite \
-  -H 'content-type: application/json' \
-  -d '{"token":"<TOKEN>","email":"you@example.com","password":"choose-a-good-one"}'
+# Redeem the invite, create a proxy via /api/v1/proxies, then POST /api/v1/devices
+# with both profile_id and proxy_id. Watch state: creating → running.
 ```
 
 API docs: <http://localhost:8000/api/docs>.
 
 ## Phases ahead
 
-- **P1a** (this phase) — FastAPI control plane, JWT auth, invite redeem, device CRUD with worker stub.
-- **P1b** — real Docker SDK device spawn, idle reaper, GC cron.
-- **P1c** — Next.js dashboard.
-- **P1d** — ws-scrcpy bridge for in-browser streaming.
-- **P2** — public signup + Stripe + per-plan quotas.
+- **P1a** — FastAPI control plane, JWT auth, invite redeem, device CRUD with worker stub. ✅
+- **P1b** (this phase) — real Docker SDK device spawn, stuck-state reaper. Idle reaper + GC deferred.
+- **P1c** — Electron desktop dashboard.
+- **P1d** — Live device screen in Electron (scrcpy / streaming bridge).
+- **P2** — public signup + Stripe + per-plan quotas + idle reaper + 7-day GC.
 - **P3+** — scale, hardening, WebRTC upgrade, device profile library.
