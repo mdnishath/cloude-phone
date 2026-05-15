@@ -16,7 +16,7 @@ from cloude_api.db import async_session_factory
 from cloude_api.enums import DeviceState
 from cloude_api.models.device import Device
 from cloude_api.workers import port_allocator
-from cloude_api.workers.spawner import render_names
+from cloude_api.workers.spawner import render_names, tear_down
 from cloude_api.ws.pubsub import channel_for
 
 log = logging.getLogger("cloude.worker.lifecycle")
@@ -81,3 +81,40 @@ async def stop_device(ctx: dict[str, Any], device_id_str: str) -> dict[str, Any]
         await db.commit()
         await _publish(redis, d)
     return {"ok": True, "state": "stopped"}
+
+
+async def delete_device(ctx: dict[str, Any], device_id_str: str) -> dict[str, Any]:
+    """arq task: stop if running, remove containers + volume, set state=deleted."""
+    docker: aiodocker.Docker = ctx["docker"]
+    redis: aioredis.Redis = ctx["redis"]
+    device_id = uuid.UUID(device_id_str)
+
+    async with async_session_factory() as db:
+        d = await db.scalar(select(Device).where(Device.id == device_id))
+        if d is None:
+            return {"ok": False, "reason": "device_missing"}
+        if d.state == DeviceState.deleted:
+            return {"ok": True, "noop": True}
+
+        if d.state in (DeviceState.running, DeviceState.creating):
+            sidecar_name, redroid_name, _vol, _labels = render_names(d.id)
+            await graceful_stop(docker, redroid_name)
+            await graceful_stop(docker, sidecar_name)
+            if d.adb_host_port is not None:
+                await port_allocator.release(redis, d.adb_host_port)
+                d.adb_host_port = None
+
+        _sc, _rd, volume_name, _labels = render_names(d.id)
+        await tear_down(
+            docker,
+            sidecar_name=_sc,
+            redroid_name=_rd,
+            volume_name=volume_name,
+            remove_volume=True,
+        )
+        d.state = DeviceState.deleted
+        d.stopped_at = d.stopped_at or datetime.now(tz=UTC)
+        d.state_reason = None
+        await db.commit()
+        await _publish(redis, d)
+    return {"ok": True, "state": "deleted"}
