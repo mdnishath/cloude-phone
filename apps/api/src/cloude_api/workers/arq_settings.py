@@ -2,10 +2,20 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
+from arq import cron
 from arq.connections import RedisSettings
 
 from cloude_api.config import get_settings
-from cloude_api.workers.tasks import _on_shutdown, _on_startup, create_device_stub
+from cloude_api.workers.tasks import (
+    _on_shutdown,
+    _on_startup,
+    create_device,
+    delete_device,
+    reap_stuck_devices,
+    stop_device,
+)
 
 
 def _redis_settings() -> RedisSettings:
@@ -13,9 +23,12 @@ def _redis_settings() -> RedisSettings:
 
 
 class WorkerSettings:
-    functions = [create_device_stub]  # noqa: RUF012
+    functions: ClassVar[list] = [create_device, stop_device, delete_device]
+    cron_jobs: ClassVar[list] = [
+        cron(reap_stuck_devices, minute=set(range(60)), run_at_startup=False),
+    ]
     on_startup = _on_startup
     on_shutdown = _on_shutdown
     redis_settings = _redis_settings()
     max_jobs = 10
-    job_timeout = 120
+    job_timeout = 240  # spawn can take ~120s; +120s margin
