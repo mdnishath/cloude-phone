@@ -12,6 +12,7 @@ dependencies = [
   "asyncpg==0.29.0",
   "alembic==1.13.1",
   "redis==5.0.4",
+  "aiodocker==0.21.0",
   "arq==0.25.0",
   "python-jose[cryptography]==3.3.0",
   "passlib[argon2]==1.7.4",
@@ -68,7 +69,7 @@ exclude = ["alembic/versions"]
 disallow_untyped_decorators = false
 
 [[tool.mypy.overrides]]
-module = ["arq.*", "slowapi.*", "passlib.*", "nacl.*", "jose.*"]
+module = ["aiodocker.*", "arq.*", "slowapi.*", "passlib.*", "nacl.*", "jose.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
