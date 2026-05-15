@@ -5,6 +5,7 @@ allocate ADB port, render proxy creds, spawn sidecar, spawn redroid,
 poll boot-complete, update DB, publish state. For now we prove the
 queue + state-transition + pub/sub fan-out works end-to-end.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -79,7 +80,9 @@ async def create_device_stub(ctx: dict[str, Any], device_id_str: str) -> dict[st
 
 async def _on_startup(ctx: dict[str, Any]) -> None:
     s = get_settings()
-    ctx["redis"] = aioredis.from_url(s.redis_url, encoding="utf-8", decode_responses=False)
+    ctx["redis"] = aioredis.from_url(  # type: ignore[no-untyped-call]  # redis-py stubs gap
+        s.redis_url, encoding="utf-8", decode_responses=False
+    )
     log.info("worker startup: redis=%s", s.redis_url)
 
 

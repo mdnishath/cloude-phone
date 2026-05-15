@@ -1,4 +1,5 @@
 """Enums used by both models and pydantic schemas. Native PG enums in DB."""
+
 from __future__ import annotations
 
 from enum import Enum

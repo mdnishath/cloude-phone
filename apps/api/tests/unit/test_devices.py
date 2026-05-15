@@ -1,4 +1,5 @@
 """Pure-logic tests for device router helpers."""
+
 from __future__ import annotations
 
 import uuid

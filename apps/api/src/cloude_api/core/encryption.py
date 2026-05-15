@@ -4,6 +4,7 @@ Sealed boxes give us "anyone-can-encrypt, only-recipient-can-decrypt" with
 ephemeral sender keys baked into the ciphertext. The API server holds both
 public and private keys (single-tenant); rotation is a future concern (P2+).
 """
+
 from __future__ import annotations
 
 import base64

@@ -1,4 +1,5 @@
 """arq WorkerSettings — picked up by `arq cloude_api.workers.arq_settings.WorkerSettings`."""
+
 from __future__ import annotations
 
 from arq.connections import RedisSettings

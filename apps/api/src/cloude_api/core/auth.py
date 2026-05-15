@@ -8,6 +8,7 @@ The denylist stores the *used* refresh JTI. When the client presents a
 refresh, the route checks the JTI is NOT in the denylist, then atomically
 adds it (using SET NX), then issues a fresh access+refresh pair.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -25,9 +26,7 @@ def hash_invite_token(raw: str) -> str:
 
 
 class _RedisLike(Protocol):
-    async def set(
-        self, key: str, value: str, *, ex: int | None = ..., nx: bool = ...
-    ) -> bool: ...
+    async def set(self, key: str, value: str, *, ex: int | None = ..., nx: bool = ...) -> bool: ...
     async def exists(self, key: str) -> int: ...
 
 

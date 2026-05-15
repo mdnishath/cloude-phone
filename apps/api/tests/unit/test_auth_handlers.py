@@ -1,4 +1,5 @@
 """Unit tests for invite hashing + token-rotation logic (Redis mocked)."""
+
 from __future__ import annotations
 
 import pytest

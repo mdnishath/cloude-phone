@@ -1,4 +1,5 @@
 """Proxy CRUD. Passwords encrypted at rest with libsodium sealed box."""
+
 from __future__ import annotations
 
 import uuid

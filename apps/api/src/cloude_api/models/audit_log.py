@@ -3,6 +3,7 @@
 DeclarativeBase reserves ``metadata``, so we map column ``metadata``
 to Python attribute ``metadata_``.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -32,6 +33,4 @@ class AuditLog(Base):
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
 
-    __table_args__ = (
-        Index("ix_audit_user_created", "user_id", "created_at"),
-    )
+    __table_args__ = (Index("ix_audit_user_created", "user_id", "created_at"),)

@@ -8,6 +8,7 @@ Single-use enforcement (Redis SETNX `stream:nonce:<nonce>` with TTL) lives in
 the websocket route — not here, because nonce-store testing belongs in the
 integration suite where Redis is real.
 """
+
 from __future__ import annotations
 
 import base64

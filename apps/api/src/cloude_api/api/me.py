@@ -1,4 +1,5 @@
 """GET /me — current user."""
+
 from fastapi import APIRouter
 
 from cloude_api.core.deps import CurrentUser

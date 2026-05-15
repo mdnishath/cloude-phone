@@ -1,4 +1,5 @@
 """GET /device-profiles — list available profiles for current user."""
+
 from fastapi import APIRouter
 from sqlalchemy import or_, select
 

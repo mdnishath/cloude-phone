@@ -1,4 +1,5 @@
 """Tests for HMAC stream-token issue/verify (no Redis)."""
+
 from __future__ import annotations
 
 import time

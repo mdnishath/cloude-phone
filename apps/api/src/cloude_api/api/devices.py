@@ -1,4 +1,5 @@
 """Device CRUD + state transitions. Lifecycle work is enqueued to arq."""
+
 from __future__ import annotations
 
 import uuid
@@ -37,9 +38,7 @@ async def _enqueue_create(device_id: uuid.UUID) -> None:
 
 
 @router.post("", response_model=DevicePublic, status_code=status.HTTP_201_CREATED)
-async def create_device(
-    body: DeviceCreate, current: CurrentUser, db: DbSession
-) -> DevicePublic:
+async def create_device(body: DeviceCreate, current: CurrentUser, db: DbSession) -> DevicePublic:
     profile = await db.scalar(select(DeviceProfile).where(DeviceProfile.id == body.profile_id))
     if profile is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="profile not found")
@@ -96,26 +95,20 @@ async def list_devices(current: CurrentUser, db: DbSession) -> list[DevicePublic
 
 
 async def _get_owned(db: DbSession, device_id: uuid.UUID, user_id: uuid.UUID) -> Device:
-    d = await db.scalar(
-        select(Device).where(Device.id == device_id, Device.user_id == user_id)
-    )
+    d = await db.scalar(select(Device).where(Device.id == device_id, Device.user_id == user_id))
     if d is None or d.state == DeviceState.deleted:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="device not found")
     return d
 
 
 @router.get("/{device_id}", response_model=DevicePublic)
-async def get_device(
-    device_id: uuid.UUID, current: CurrentUser, db: DbSession
-) -> DevicePublic:
+async def get_device(device_id: uuid.UUID, current: CurrentUser, db: DbSession) -> DevicePublic:
     d = await _get_owned(db, device_id, current.id)
     return DevicePublic.model_validate(d)
 
 
 @router.post("/{device_id}/start", response_model=DevicePublic)
-async def start_device(
-    device_id: uuid.UUID, current: CurrentUser, db: DbSession
-) -> DevicePublic:
+async def start_device(device_id: uuid.UUID, current: CurrentUser, db: DbSession) -> DevicePublic:
     d = await _get_owned(db, device_id, current.id)
     if d.state not in (DeviceState.stopped, DeviceState.error):
         raise HTTPException(status.HTTP_409_CONFLICT, detail=f"cannot start from {d.state.value}")
@@ -129,9 +122,7 @@ async def start_device(
 
 
 @router.post("/{device_id}/stop", response_model=DevicePublic)
-async def stop_device(
-    device_id: uuid.UUID, current: CurrentUser, db: DbSession
-) -> DevicePublic:
+async def stop_device(device_id: uuid.UUID, current: CurrentUser, db: DbSession) -> DevicePublic:
     d = await _get_owned(db, device_id, current.id)
     if d.state not in (DeviceState.running, DeviceState.creating):
         raise HTTPException(status.HTTP_409_CONFLICT, detail=f"cannot stop from {d.state.value}")
@@ -144,9 +135,7 @@ async def stop_device(
 
 
 @router.delete("/{device_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
-async def delete_device(
-    device_id: uuid.UUID, current: CurrentUser, db: DbSession
-) -> None:
+async def delete_device(device_id: uuid.UUID, current: CurrentUser, db: DbSession) -> None:
     d = await _get_owned(db, device_id, current.id)
     d.state = DeviceState.deleted
     d.stopped_at = d.stopped_at or datetime.now(tz=UTC)
@@ -169,9 +158,7 @@ async def get_stream_token(
 
 
 @router.get("/{device_id}/adb-info", response_model=AdbInfo)
-async def get_adb_info(
-    device_id: uuid.UUID, current: CurrentUser, db: DbSession
-) -> AdbInfo:
+async def get_adb_info(device_id: uuid.UUID, current: CurrentUser, db: DbSession) -> AdbInfo:
     d = await _get_owned(db, device_id, current.id)
     if d.state != DeviceState.running or d.adb_host_port is None:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="device not running with adb port")

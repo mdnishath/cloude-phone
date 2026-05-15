@@ -1,4 +1,5 @@
 """Tests for libsodium sealed-box helpers."""
+
 from __future__ import annotations
 
 import base64

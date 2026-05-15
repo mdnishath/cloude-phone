@@ -1,4 +1,5 @@
 """slowapi limiter — in-process. Move to Redis-backed before horizontal scale."""
+
 from __future__ import annotations
 
 from slowapi import Limiter

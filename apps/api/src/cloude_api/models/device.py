@@ -1,4 +1,5 @@
 """Per-instance device record. State-machine column drives lifecycle."""
+
 from __future__ import annotations
 
 import uuid
@@ -16,9 +17,7 @@ from cloude_api.models.base import Base
 class Device(Base):
     __tablename__ = "devices"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -48,6 +47,4 @@ class Device(Base):
     started_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
     stopped_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
 
-    __table_args__ = (
-        Index("ix_devices_user_id_state", "user_id", "state"),
-    )
+    __table_args__ = (Index("ix_devices_user_id_state", "user_id", "state"),)

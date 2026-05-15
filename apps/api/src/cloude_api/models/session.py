@@ -1,4 +1,5 @@
 """Active streaming WS session. Rows ttl-collected by idle reaper (P1b)."""
+
 from __future__ import annotations
 
 import uuid
@@ -14,9 +15,7 @@ from cloude_api.models.base import Base
 class Session(Base):
     __tablename__ = "sessions"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     device_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("devices.id", ondelete="CASCADE"),
@@ -33,6 +32,4 @@ class Session(Base):
     )
     client_ip: Mapped[str | None] = mapped_column(INET, nullable=True)
 
-    __table_args__ = (
-        Index("ix_sessions_device_lastping", "device_id", "last_ping_at"),
-    )
+    __table_args__ = (Index("ix_sessions_device_lastping", "device_id", "last_ping_at"),)

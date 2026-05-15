@@ -1,4 +1,5 @@
 """FastAPI dependencies: DB session, Redis client, current user."""
+
 from __future__ import annotations
 
 import uuid
@@ -32,7 +33,7 @@ _redis: aioredis.Redis | None = None
 def get_redis() -> aioredis.Redis:
     global _redis
     if _redis is None:
-        _redis = aioredis.from_url(
+        _redis = aioredis.from_url(  # type: ignore[no-untyped-call]  # redis-py stubs gap
             get_settings().redis_url, encoding="utf-8", decode_responses=True
         )
     return _redis

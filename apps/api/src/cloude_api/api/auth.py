@@ -1,4 +1,5 @@
 """Auth routes: login, refresh, redeem-invite."""
+
 import uuid
 from datetime import UTC, datetime
 
@@ -54,15 +55,12 @@ async def refresh_tokens(
     if not jti or not sub or not exp:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="malformed refresh")
 
-    if await auth_core.is_refresh_revoked(redis, jti):
+    if await auth_core.is_refresh_revoked(redis, jti):  # type: ignore[arg-type]  # redis-py stubs use broader sigs than _RedisLike Protocol
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="refresh reused")
 
     s = get_settings()
-    ttl = (
-        max(int(exp) - int(datetime.now(tz=UTC).timestamp()), 0)
-        or s.jwt_refresh_ttl_seconds
-    )
-    added = await auth_core.revoke_refresh(redis, jti, ttl_seconds=ttl)
+    ttl = max(int(exp) - int(datetime.now(tz=UTC).timestamp()), 0) or s.jwt_refresh_ttl_seconds
+    added = await auth_core.revoke_refresh(redis, jti, ttl_seconds=ttl)  # type: ignore[arg-type]  # redis-py stubs use broader sigs than _RedisLike Protocol
     if not added:
         # Race lost — another concurrent request claimed it first.
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="refresh reused")
@@ -82,9 +80,7 @@ async def refresh_tokens(
 
 @router.post("/redeem-invite", response_model=TokenPair, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
-async def redeem_invite(
-    request: Request, body: RedeemInviteRequest, db: DbSession
-) -> TokenPair:
+async def redeem_invite(request: Request, body: RedeemInviteRequest, db: DbSession) -> TokenPair:
     token_hash = auth_core.hash_invite_token(body.token)
     invite = await db.scalar(select(Invite).where(Invite.token_hash == token_hash))
     if invite is None:

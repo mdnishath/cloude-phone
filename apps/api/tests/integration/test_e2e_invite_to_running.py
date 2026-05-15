@@ -11,6 +11,7 @@ The test:
      the state-transition + pub/sub contract).
   6. Asserts state is `running` and adb_host_port is set.
 """
+
 from __future__ import annotations
 
 import os
@@ -34,6 +35,14 @@ from cloude_api.workers.tasks import create_device_stub
 
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
 
+# Skip the entire module (including fixtures) when INTEGRATION env var is absent.
+# The guard used to live inside the test body, but that let fixtures run first and
+# ERROR on a missing postgres connection before the skip could fire.
+_integration_enabled = bool(os.environ.get("INTEGRATION") or os.environ.get("PYTEST_INTEGRATION"))
+
+if not _integration_enabled:
+    pytestmark.append(pytest.mark.skip(reason="set INTEGRATION=1 to run integration tests"))
+
 
 @pytest.fixture
 async def client() -> AsyncClient:
@@ -48,9 +57,13 @@ async def seed_profile() -> DeviceProfile:
         prof = DeviceProfile(
             id=uuid.uuid4(),
             name=f"int-test-{uuid.uuid4().hex[:6]}",
-            screen_width=1080, screen_height=2340, screen_dpi=440,
-            ram_mb=4096, cpu_cores=4,
-            manufacturer="Google", model="Pixel 5",
+            screen_width=1080,
+            screen_height=2340,
+            screen_dpi=440,
+            ram_mb=4096,
+            cpu_cores=4,
+            manufacturer="Google",
+            model="Pixel 5",
             is_public=True,
         )
         db.add(prof)
@@ -60,9 +73,6 @@ async def seed_profile() -> DeviceProfile:
 
 
 async def test_invite_to_running_smoke(client: AsyncClient, seed_profile: DeviceProfile) -> None:
-    if not os.environ.get("INTEGRATION") and not os.environ.get("PYTEST_INTEGRATION"):
-        pytest.skip("set INTEGRATION=1 to run integration tests")
-
     raw = generate_invite_token()
     async with async_session_factory() as db:
         db.add(

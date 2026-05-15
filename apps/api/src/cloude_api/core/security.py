@@ -1,9 +1,10 @@
 """Password hashing (argon2id) + JWT issue/decode (HS256)."""
+
 from __future__ import annotations
 
 import time
 import uuid
-from typing import Any, cast
+from typing import Any
 
 from jose import jwt
 from passlib.context import CryptContext
@@ -21,19 +22,22 @@ def _now() -> int:
 
 
 def hash_password(plaintext: str) -> str:
-    return cast(str, _pwd.hash(plaintext))
+    result: str = _pwd.hash(plaintext)
+    return result
 
 
 def verify_password(plaintext: str, hashed: str) -> bool:
     try:
-        return cast(bool, _pwd.verify(plaintext, hashed))
+        result: bool = _pwd.verify(plaintext, hashed)
+        return result
     except Exception:
         return False
 
 
 def _encode(payload: dict[str, Any]) -> str:
     s = get_settings()
-    return cast(str, jwt.encode(payload, s.jwt_secret, algorithm=s.jwt_algorithm))
+    result: str = jwt.encode(payload, s.jwt_secret, algorithm=s.jwt_algorithm)
+    return result
 
 
 def create_access_token(*, subject: str, extra: dict[str, Any] | None = None) -> str:
@@ -66,4 +70,5 @@ def create_refresh_token(*, subject: str) -> str:
 
 def decode_token(token: str) -> dict[str, Any]:
     s = get_settings()
-    return cast(dict[str, Any], jwt.decode(token, s.jwt_secret, algorithms=[s.jwt_algorithm]))
+    result: dict[str, Any] = jwt.decode(token, s.jwt_secret, algorithms=[s.jwt_algorithm])
+    return result

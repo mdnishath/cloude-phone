@@ -3,6 +3,7 @@
 End-to-end CRUD is covered by the integration test (Task 30+). Here we just
 prove the to-public mapper masks passwords correctly.
 """
+
 from __future__ import annotations
 
 import uuid

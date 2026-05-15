@@ -4,6 +4,7 @@ Usage examples:
   python scripts/make_invite.py --role admin --ttl-hours 48
   python scripts/make_invite.py --email new@user.com --role user
 """
+
 from __future__ import annotations
 
 import argparse
@@ -47,9 +48,11 @@ async def main() -> None:
     print(f"  token:  {raw}")
     print("")
     print("Give the user this curl to redeem:")
-    print('  curl -X POST http://localhost:8000/api/v1/auth/redeem-invite \\')
+    print("  curl -X POST http://localhost:8000/api/v1/auth/redeem-invite \\")
     print('    -H "content-type: application/json" \\')
-    print(f"    -d '{{\"token\":\"{raw}\",\"email\":\"USER@EXAMPLE.COM\",\"password\":\"choose-strong-pw\"}}'")  # noqa: E501
+    print(
+        f'    -d \'{{"token":"{raw}","email":"USER@EXAMPLE.COM","password":"choose-strong-pw"}}\''
+    )
 
 
 if __name__ == "__main__":
