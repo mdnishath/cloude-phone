@@ -106,3 +106,48 @@ async def spawn_sidecar(
         },
     )
     return str(container.id)
+
+
+async def spawn_redroid(
+    docker: aiodocker.Docker,
+    *,
+    name: str,
+    sidecar_name: str,
+    volume: str,
+    width: int,
+    height: int,
+    dpi: int,
+    ram_mb: int,
+    cpus: int,
+    model: str,
+    manufacturer: str,
+    labels: dict[str, str],
+) -> str:
+    """Launch the redroid container joined to the sidecar's netns. Returns id."""
+    cmd = [
+        f"androidboot.redroid_width={width}",
+        f"androidboot.redroid_height={height}",
+        f"androidboot.redroid_dpi={dpi}",
+        "androidboot.redroid_gpu_mode=guest",
+        f"ro.product.model={model}",
+        f"ro.product.manufacturer={manufacturer}",
+        "net.dns1=127.0.0.1",
+        "net.dns2=127.0.0.1",
+    ]
+    container = await docker.containers.run(
+        name=name,
+        config={
+            "Image": REDROID_IMAGE,
+            "Cmd": cmd,
+            "Labels": labels,
+            "HostConfig": {
+                "NetworkMode": f"container:{sidecar_name}",
+                "Privileged": True,
+                "Memory": ram_mb * 1024 * 1024,
+                "CpuCount": cpus,
+                "Binds": [f"{volume}:/data"],
+                "RestartPolicy": {"Name": "no"},
+            },
+        },
+    )
+    return str(container.id)

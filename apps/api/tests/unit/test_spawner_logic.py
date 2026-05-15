@@ -125,3 +125,50 @@ async def test_spawn_sidecar_passes_expected_config() -> None:
     assert hc["PortBindings"] == {"5555/tcp": [{"HostPort": "40500"}]}
     assert hc["RestartPolicy"] == {"Name": "no"}
     assert cfg["ExposedPorts"] == {"5555/tcp": {}}
+
+
+@pytest.mark.asyncio
+async def test_spawn_redroid_passes_expected_config() -> None:
+    docker = MagicMock(spec=aiodocker.Docker)
+    docker.containers = MagicMock()
+    fake_container = MagicMock()
+    fake_container.id = "sha256:redroidid"
+    docker.containers.run = AsyncMock(return_value=fake_container)
+
+    cid = await spawner.spawn_redroid(
+        docker,
+        name="cloude-redroid-aaaabbbbcccc",
+        sidecar_name="cloude-sidecar-aaaabbbbcccc",
+        volume="cloude-data-xxxx",
+        width=1080,
+        height=2340,
+        dpi=440,
+        ram_mb=4096,
+        cpus=4,
+        model="Pixel 5",
+        manufacturer="Google",
+        labels={"cloude.device_id": "xx"},
+    )
+    assert cid == "sha256:redroidid"
+
+    call_kwargs = docker.containers.run.await_args.kwargs
+    cfg = call_kwargs["config"]
+    assert cfg["Image"] == "redroid/redroid:11.0.0-latest"
+    assert cfg["Labels"] == {"cloude.device_id": "xx"}
+    cmd = cfg["Cmd"]
+    assert "androidboot.redroid_width=1080" in cmd
+    assert "androidboot.redroid_height=2340" in cmd
+    assert "androidboot.redroid_dpi=440" in cmd
+    assert "androidboot.redroid_gpu_mode=guest" in cmd
+    assert "ro.product.model=Pixel 5" in cmd
+    assert "ro.product.manufacturer=Google" in cmd
+    assert "net.dns1=127.0.0.1" in cmd
+    assert "net.dns2=127.0.0.1" in cmd
+
+    hc = cfg["HostConfig"]
+    assert hc["NetworkMode"] == "container:cloude-sidecar-aaaabbbbcccc"
+    assert hc["Privileged"] is True
+    assert hc["Memory"] == 4096 * 1024 * 1024
+    assert hc["CpuCount"] == 4
+    assert hc["Binds"] == ["cloude-data-xxxx:/data"]
+    assert hc["RestartPolicy"] == {"Name": "no"}
