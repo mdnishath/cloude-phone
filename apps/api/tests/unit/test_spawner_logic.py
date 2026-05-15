@@ -172,3 +172,87 @@ async def test_spawn_redroid_passes_expected_config() -> None:
     assert hc["CpuCount"] == 4
     assert hc["Binds"] == ["cloude-data-xxxx:/data"]
     assert hc["RestartPolicy"] == {"Name": "no"}
+
+
+@pytest.mark.asyncio
+async def test_wait_for_sidecar_healthy_succeeds_when_redsocks_found(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    docker = MagicMock(spec=aiodocker.Docker)
+    docker.containers = MagicMock()
+    fake_container = MagicMock()
+    fake_exec = MagicMock()
+    fake_exec.start = AsyncMock(return_value=b"123\n")  # pgrep output: a pid
+    fake_container.exec = AsyncMock(return_value=fake_exec)
+    docker.containers.get = AsyncMock(return_value=fake_container)
+    monkeypatch.setattr("asyncio.sleep", AsyncMock())
+
+    await spawner.wait_for_sidecar_healthy(docker, "sc", timeout_s=5.0)
+
+
+@pytest.mark.asyncio
+async def test_wait_for_sidecar_healthy_raises_on_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    docker = MagicMock(spec=aiodocker.Docker)
+    docker.containers = MagicMock()
+    fake_container = MagicMock()
+    fake_exec = MagicMock()
+    fake_exec.start = AsyncMock(return_value=b"")  # pgrep finds nothing
+    fake_container.exec = AsyncMock(return_value=fake_exec)
+    docker.containers.get = AsyncMock(return_value=fake_container)
+    monkeypatch.setattr("asyncio.sleep", AsyncMock())
+
+    with pytest.raises(spawner.SpawnError, match="sidecar"):
+        await spawner.wait_for_sidecar_healthy(docker, "sc", timeout_s=0.0)
+
+
+@pytest.mark.asyncio
+async def test_wait_for_boot_completed_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
+    docker = MagicMock(spec=aiodocker.Docker)
+    docker.containers = MagicMock()
+    fake_container = MagicMock()
+    fake_container.show = AsyncMock(return_value={"State": {"Status": "running"}})
+    fake_exec = MagicMock()
+    fake_exec.start = AsyncMock(return_value=b"1\n")
+    fake_container.exec = AsyncMock(return_value=fake_exec)
+    docker.containers.get = AsyncMock(return_value=fake_container)
+    monkeypatch.setattr("asyncio.sleep", AsyncMock())
+
+    await spawner.wait_for_boot_completed(docker, "rd", timeout_s=5.0)
+
+
+@pytest.mark.asyncio
+async def test_wait_for_boot_completed_raises_when_container_exits(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    docker = MagicMock(spec=aiodocker.Docker)
+    docker.containers = MagicMock()
+    fake_container = MagicMock()
+    fake_container.show = AsyncMock(return_value={"State": {"Status": "exited"}})
+    fake_exec = MagicMock()
+    fake_exec.start = AsyncMock(return_value=b"")
+    fake_container.exec = AsyncMock(return_value=fake_exec)
+    docker.containers.get = AsyncMock(return_value=fake_container)
+    monkeypatch.setattr("asyncio.sleep", AsyncMock())
+
+    with pytest.raises(spawner.SpawnError, match="exited"):
+        await spawner.wait_for_boot_completed(docker, "rd", timeout_s=5.0)
+
+
+@pytest.mark.asyncio
+async def test_wait_for_boot_completed_raises_on_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    docker = MagicMock(spec=aiodocker.Docker)
+    docker.containers = MagicMock()
+    fake_container = MagicMock()
+    fake_container.show = AsyncMock(return_value={"State": {"Status": "running"}})
+    fake_exec = MagicMock()
+    fake_exec.start = AsyncMock(return_value=b"0\n")  # not booted
+    fake_container.exec = AsyncMock(return_value=fake_exec)
+    docker.containers.get = AsyncMock(return_value=fake_container)
+    monkeypatch.setattr("asyncio.sleep", AsyncMock())
+
+    with pytest.raises(spawner.SpawnError, match="boot did not complete"):
+        await spawner.wait_for_boot_completed(docker, "rd", timeout_s=0.0)

@@ -14,6 +14,8 @@ Public surface used by arq tasks:
 
 from __future__ import annotations
 
+import asyncio
+import time
 import uuid
 
 import aiodocker
@@ -151,3 +153,46 @@ async def spawn_redroid(
         },
     )
     return str(container.id)
+
+
+async def _exec_capture(container: aiodocker.docker.DockerContainer, cmd: list[str]) -> str:
+    """Run `cmd` in the container, return stdout as utf-8 text. Best-effort."""
+    exec_obj = await container.exec(cmd, stdout=True, stderr=False)
+    out = await exec_obj.start(detach=False)
+    if isinstance(out, bytes):
+        return out.decode("utf-8", errors="replace")
+    return str(out)
+
+
+async def wait_for_sidecar_healthy(
+    docker: aiodocker.Docker, name: str, *, timeout_s: float = 20.0
+) -> None:
+    """Poll sidecar until `pgrep redsocks` returns a pid. Raises SpawnError on timeout."""
+    container = await docker.containers.get(name)
+    deadline = time.monotonic() + timeout_s
+    while True:
+        out = await _exec_capture(container, ["pgrep", "redsocks"])
+        if out.strip():
+            return
+        if time.monotonic() >= deadline:
+            raise SpawnError(f"sidecar '{name}' redsocks did not start within {timeout_s:.0f}s")
+        await asyncio.sleep(1.0)
+
+
+async def wait_for_boot_completed(
+    docker: aiodocker.Docker, name: str, *, timeout_s: float = 120.0
+) -> None:
+    """Poll redroid until `getprop sys.boot_completed` returns `1`. Raises on timeout/exit."""
+    container = await docker.containers.get(name)
+    deadline = time.monotonic() + timeout_s
+    while True:
+        info = await container.show()
+        status = info.get("State", {}).get("Status")
+        if status == "exited":
+            raise SpawnError(f"redroid '{name}' exited before boot completed")
+        out = await _exec_capture(container, ["getprop", "sys.boot_completed"])
+        if out.strip() == "1":
+            return
+        if time.monotonic() >= deadline:
+            raise SpawnError(f"android boot did not complete within {timeout_s:.0f}s")
+        await asyncio.sleep(2.0)
