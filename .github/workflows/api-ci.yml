@@ -1,0 +1,91 @@
+name: api-ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - ".github/workflows/api-ci.yml"
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - ".github/workflows/api-ci.yml"
+
+jobs:
+  lint-type-test:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: cloude
+          POSTGRES_PASSWORD: changeme_local_dev
+          POSTGRES_DB: cloude
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cloude -d cloude"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://cloude:changeme_local_dev@localhost:5432/cloude
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET: ci-secret-ci-secret-ci-secret-ci-secret-ci-secret-ci-secret-AAAA
+      STREAM_TOKEN_SECRET: ci-stream-ci-stream-ci-stream-ci-stream-ci-stream-AAAA
+      ENCRYPTION_PUBLIC_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      ENCRYPTION_PRIVATE_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      ENVIRONMENT: ci
+
+    defaults:
+      run:
+        working-directory: apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Generate real encryption keypair for CI
+        run: |
+          python -m cloude_api.core.encryption keygen >> $GITHUB_ENV
+
+      - name: Ruff lint
+        run: ruff check src tests scripts
+
+      - name: Ruff format check
+        run: ruff format --check src tests scripts
+
+      - name: mypy --strict
+        run: mypy --strict src
+
+      - name: Alembic upgrade
+        run: alembic upgrade head
+
+      - name: pytest (unit)
+        run: pytest tests/unit -v
+
+      - name: pytest (integration)
+        env:
+          INTEGRATION: "1"
+        run: pytest tests/integration -v
