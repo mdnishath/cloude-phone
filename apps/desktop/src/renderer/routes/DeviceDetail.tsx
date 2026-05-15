@@ -6,6 +6,7 @@ import { DeviceActions } from '@/components/devices/DeviceActions';
 import { AdbInfoCard } from '@/components/devices/AdbInfoCard';
 import { StreamPlaceholder } from '@/components/devices/StreamPlaceholder';
 import { useDeviceQuery, useProfilesQuery, useProxiesQuery } from '@/lib/queries';
+import { useDeviceStatusWS } from '@/lib/ws';
 import { ArrowLeft } from 'lucide-react';
 
 export const DeviceDetail = (): JSX.Element => {
@@ -13,6 +14,7 @@ export const DeviceDetail = (): JSX.Element => {
   const deviceQ = useDeviceQuery(id);
   const profilesQ = useProfilesQuery();
   const proxiesQ = useProxiesQuery();
+  useDeviceStatusWS(id);
 
   if (deviceQ.isLoading) return <p>Loading…</p>;
   if (deviceQ.isError || !deviceQ.data) {

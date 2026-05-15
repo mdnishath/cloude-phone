@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { useSettingsStore } from '@/stores/settings';
+import { ConnectionBanner } from '@/components/feedback/ConnectionBanner';
 
 export const AppShell = (): JSX.Element => {
   const backend = useSettingsStore((s) => s.prefs.backendUrl);
@@ -12,6 +13,7 @@ export const AppShell = (): JSX.Element => {
           <span className="text-muted-foreground">Backend:</span>
           <span className="font-mono">{backend}</span>
         </header>
+        <ConnectionBanner />
         <main className="flex-1 overflow-auto p-6">
           <Outlet />
         </main>
