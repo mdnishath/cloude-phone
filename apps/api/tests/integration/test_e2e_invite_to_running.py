@@ -116,6 +116,7 @@ async def test_invite_to_running_smoke(client: AsyncClient, seed_profile: Device
     # Manually exercise the DB-transition + pubsub contract (no real Docker
     # spawn in this test; that's covered by test_real_spawn.py).
     import random
+
     s = get_settings()
     redis = aioredis.from_url(s.redis_url, encoding="utf-8", decode_responses=False)
     fake_port = random.randint(40000, 49999)  # noqa: S311  test-only
@@ -124,7 +125,8 @@ async def test_invite_to_running_smoke(client: AsyncClient, seed_profile: Device
             fresh = await fdb.scalar(select(Device).where(Device.id == device_id))
             assert fresh is not None
             await _finalize_running(
-                fdb, redis,
+                fdb,
+                redis,
                 device=fresh,
                 sidecar_id="sha256:test-sidecar",
                 redroid_id="sha256:test-redroid",

@@ -96,9 +96,13 @@ async def _seed(db) -> tuple[User, DeviceProfile, Proxy]:
     profile = DeviceProfile(
         id=uuid.uuid4(),
         name=f"rs-{uuid.uuid4().hex[:6]}",
-        screen_width=1080, screen_height=2340, screen_dpi=440,
-        ram_mb=4096, cpu_cores=4,
-        manufacturer="Google", model="Pixel 5",
+        screen_width=1080,
+        screen_height=2340,
+        screen_dpi=440,
+        ram_mb=4096,
+        cpu_cores=4,
+        manufacturer="Google",
+        model="Pixel 5",
         is_public=True,
     )
     db.add(profile)
@@ -113,8 +117,11 @@ async def _seed(db) -> tuple[User, DeviceProfile, Proxy]:
         port=int(os.environ["PROXY_PORT"]),
         username=os.environ.get("PROXY_USER") or None,
         password_encrypted=encrypt_password(
-            os.environ.get("PROXY_PASS", ""), pub_b64=s.encryption_public_key,
-        ) if os.environ.get("PROXY_PASS") else None,
+            os.environ.get("PROXY_PASS", ""),
+            pub_b64=s.encryption_public_key,
+        )
+        if os.environ.get("PROXY_PASS")
+        else None,
     )
     db.add(proxy)
     await db.commit()

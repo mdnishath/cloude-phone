@@ -69,7 +69,7 @@ async def tear_down(
     """Best-effort removal. Never raises. 404s are ignored."""
     for name in (sidecar_name, redroid_name):
         try:
-            container = await docker.containers.get(name)
+            container = await docker.containers.get(name)  # type: ignore[no-untyped-call]
         except aiodocker.exceptions.DockerError as e:
             if e.status == 404:
                 continue
@@ -82,7 +82,7 @@ async def tear_down(
             continue
     if remove_volume and volume_name:
         try:
-            vol = await docker.volumes.get(volume_name)
+            vol = await docker.volumes.get(volume_name)  # type: ignore[attr-defined]
         except aiodocker.exceptions.DockerError as e:
             if e.status == 404:
                 return
@@ -188,7 +188,7 @@ async def wait_for_sidecar_healthy(
     docker: aiodocker.Docker, name: str, *, timeout_s: float = 20.0
 ) -> None:
     """Poll sidecar until `pgrep redsocks` returns a pid. Raises SpawnError on timeout."""
-    container = await docker.containers.get(name)
+    container = await docker.containers.get(name)  # type: ignore[no-untyped-call]
     deadline = time.monotonic() + timeout_s
     while True:
         out = await _exec_capture(container, ["pgrep", "redsocks"])
@@ -203,7 +203,7 @@ async def wait_for_boot_completed(
     docker: aiodocker.Docker, name: str, *, timeout_s: float = 120.0
 ) -> None:
     """Poll redroid until `getprop sys.boot_completed` returns `1`. Raises on timeout/exit."""
-    container = await docker.containers.get(name)
+    container = await docker.containers.get(name)  # type: ignore[no-untyped-call]
     deadline = time.monotonic() + timeout_s
     while True:
         info = await container.show()
@@ -292,9 +292,7 @@ async def create_device(ctx: dict[str, Any], device_id_str: str) -> dict[str, An
             log.info("create_device: device %s state=%s, no-op", device_id, d.state)
             return {"ok": True, "noop": True, "state": d.state.value}
 
-        profile = await db.scalar(
-            select(DeviceProfile).where(DeviceProfile.id == d.profile_id)
-        )
+        profile = await db.scalar(select(DeviceProfile).where(DeviceProfile.id == d.profile_id))
         if d.proxy_id is None:
             await _finalize_error(db, redis, device=d, reason="no proxy assigned")
             return {"ok": False, "reason": "no proxy"}
@@ -323,7 +321,7 @@ async def create_device(ctx: dict[str, Any], device_id_str: str) -> dict[str, An
         redroid_id = ""
         try:
             try:
-                await docker.volumes.create({"Name": volume_name})
+                await docker.volumes.create({"Name": volume_name})  # type: ignore[no-untyped-call]
             except aiodocker.exceptions.DockerError as e:
                 if e.status != 409:  # 409 = already exists, idempotent
                     raise SpawnError(f"volume create failed: {e}") from e
@@ -370,8 +368,12 @@ async def create_device(ctx: dict[str, Any], device_id_str: str) -> dict[str, An
             return {"ok": False, "reason": str(e)}
 
         await _finalize_running(
-            db, redis, device=d,
-            sidecar_id=sidecar_id, redroid_id=redroid_id, adb_port=port,
+            db,
+            redis,
+            device=d,
+            sidecar_id=sidecar_id,
+            redroid_id=redroid_id,
+            adb_port=port,
         )
         log.info("create_device done: %s on port %d", device_id, port)
         return {"ok": True, "state": "running", "adb_host_port": port}

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from arq import cron
 from arq.connections import RedisSettings
@@ -23,8 +23,8 @@ def _redis_settings() -> RedisSettings:
 
 
 class WorkerSettings:
-    functions: ClassVar[list] = [create_device, stop_device, delete_device]
-    cron_jobs: ClassVar[list] = [
+    functions: ClassVar[list[Any]] = [create_device, stop_device, delete_device]
+    cron_jobs: ClassVar[list[Any]] = [
         cron(reap_stuck_devices, minute=set(range(60)), run_at_startup=False),
     ]
     on_startup = _on_startup

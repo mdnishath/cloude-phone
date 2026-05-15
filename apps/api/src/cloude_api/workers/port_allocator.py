@@ -25,7 +25,7 @@ async def initialize(redis: aioredis.Redis, db: AsyncSession) -> None:
     seeded = bool(await redis.exists(PORT_SET_KEY))
     if not seeded:
         ports = list(range(PORT_POOL_MIN, PORT_POOL_MAX + 1))
-        await redis.sadd(PORT_SET_KEY, *ports)
+        await redis.sadd(PORT_SET_KEY, *ports)  # type: ignore[misc]  # redis stubs return Awaitable|int
 
     claimed_rows = await db.scalars(
         select(Device.adb_host_port).where(
@@ -34,12 +34,12 @@ async def initialize(redis: aioredis.Redis, db: AsyncSession) -> None:
     )
     claimed = [p for p in claimed_rows.all() if p is not None]
     if claimed:
-        await redis.srem(PORT_SET_KEY, *claimed)
+        await redis.srem(PORT_SET_KEY, *claimed)  # type: ignore[misc]  # redis stubs return Awaitable|int
 
 
 async def acquire(redis: aioredis.Redis) -> int | None:
     """Atomically claim one free port. Returns None if the pool is exhausted."""
-    raw = await redis.spop(PORT_SET_KEY)
+    raw = await redis.spop(PORT_SET_KEY)  # type: ignore[misc]  # redis stubs return Awaitable|str|list|None
     if raw is None:
         return None
     return int(raw)
@@ -47,4 +47,4 @@ async def acquire(redis: aioredis.Redis) -> int | None:
 
 async def release(redis: aioredis.Redis, port: int) -> None:
     """Return a port to the free-set. Idempotent (SADD is set-semantics)."""
-    await redis.sadd(PORT_SET_KEY, port)
+    await redis.sadd(PORT_SET_KEY, port)  # type: ignore[misc]  # redis stubs return Awaitable|int

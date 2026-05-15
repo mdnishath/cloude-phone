@@ -22,12 +22,10 @@ from cloude_api.ws.pubsub import channel_for
 log = logging.getLogger("cloude.worker.lifecycle")
 
 
-async def graceful_stop(
-    docker: aiodocker.Docker, name: str, *, timeout: int = 10
-) -> None:
+async def graceful_stop(docker: aiodocker.Docker, name: str, *, timeout: int = 10) -> None:
     """Stop then delete a container. 404s are ignored."""
     try:
-        container = await docker.containers.get(name)
+        container = await docker.containers.get(name)  # type: ignore[no-untyped-call]
     except aiodocker.exceptions.DockerError as e:
         if e.status == 404:
             return

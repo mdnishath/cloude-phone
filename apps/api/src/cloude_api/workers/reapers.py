@@ -80,15 +80,15 @@ async def reap_stuck_devices(ctx: dict[str, Any]) -> None:
             if d.adb_host_port is not None:
                 await port_allocator.release(redis, d.adb_host_port)
             await _flip_error(
-                db, redis, device=d,
+                db,
+                redis,
+                device=d,
                 reason=f"spawn timeout (stuck in 'creating' > {STUCK_THRESHOLD_SECONDS}s)",
             )
             log.warning("reaped stuck device %s", d.id)
 
 
-async def orphan_scan(
-    db: AsyncSession, redis: aioredis.Redis, docker: aiodocker.Docker
-) -> None:
+async def orphan_scan(db: AsyncSession, redis: aioredis.Redis, docker: aiodocker.Docker) -> None:
     """One-shot scan at worker startup. Any 'running' device whose containers
     are gone gets flipped to 'error'."""
     rows = (
@@ -101,7 +101,7 @@ async def orphan_scan(
         found = True
         for name in (sidecar_name, redroid_name):
             try:
-                await docker.containers.get(name)
+                await docker.containers.get(name)  # type: ignore[no-untyped-call]
             except aiodocker.exceptions.DockerError as e:
                 if e.status == 404:
                     found = False
@@ -110,7 +110,9 @@ async def orphan_scan(
             if d.adb_host_port is not None:
                 await port_allocator.release(redis, d.adb_host_port)
             await _flip_error(
-                db, redis, device=d,
+                db,
+                redis,
+                device=d,
                 reason="containers missing after worker restart",
             )
             log.warning("orphan-scan flipped %s to error", d.id)

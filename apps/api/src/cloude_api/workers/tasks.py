@@ -49,4 +49,4 @@ async def _on_shutdown(ctx: dict[str, Any]) -> None:
         await close_docker_client(docker)
     redis = ctx.get("redis")
     if redis is not None:
-        await redis.aclose()  # type: ignore[no-untyped-call]
+        await redis.aclose()
