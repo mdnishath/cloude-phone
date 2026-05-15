@@ -1,6 +1,11 @@
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogTitle, AlertDialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Check, X, Trash2 } from 'lucide-react';
@@ -25,19 +30,28 @@ export const ProxyTable = ({ proxies }: { proxies: Proxy[] }): JSX.Element => {
           <tr key={p.id} className="border-b last:border-b-0">
             <td className="py-2 px-3 font-medium">{p.label}</td>
             <td className="py-2 px-3">{p.type}</td>
-            <td className="py-2 px-3 font-mono">{p.host}:{p.port}</td>
+            <td className="py-2 px-3 font-mono">
+              {p.host}:{p.port}
+            </td>
             <td className="py-2 px-3">
-              {p.has_password ? <Check className="h-4 w-4 text-emerald-600" /> : <X className="h-4 w-4 text-muted-foreground" />}
+              {p.has_password ? (
+                <Check className="h-4 w-4 text-emerald-600" />
+              ) : (
+                <X className="h-4 w-4 text-muted-foreground" />
+              )}
             </td>
             <td className="py-2 px-3 text-right">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="icon" variant="ghost"><Trash2 className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
-                  <AlertDialogTitle>Delete proxy "{p.label}"?</AlertDialogTitle>
+                  <AlertDialogTitle>Delete proxy &quot;{p.label}&quot;?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Devices currently using this proxy will keep running, but you can't create new devices against it.
+                    Devices currently using this proxy will keep running, but you can&apos;t create
+                    new devices against it.
                   </AlertDialogDescription>
                   <div className="flex justify-end gap-2">
                     <AlertDialogCancel>Cancel</AlertDialogCancel>

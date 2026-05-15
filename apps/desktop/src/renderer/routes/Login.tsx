@@ -18,7 +18,10 @@ type FormValues = z.infer<typeof schema>;
 export const Login = (): JSX.Element => {
   const navigate = useNavigate();
   const mutation = useLoginMutation();
-  const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { email: '', password: '' } });
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { email: '', password: '' },
+  });
 
   const onSubmit = form.handleSubmit(async (values) => {
     const tokens = await mutation.mutateAsync(values);
@@ -39,21 +42,30 @@ export const Login = (): JSX.Element => {
         </div>
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" autoComplete="current-password" {...form.register('password')} />
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            {...form.register('password')}
+          />
           {form.formState.errors.password && (
             <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
           )}
         </div>
         {mutation.isError && (
           <p className="text-sm text-destructive" role="alert">
-            {(mutation.error as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ?? 'Login failed'}
+            {(mutation.error as { response?: { data?: { error?: { message?: string } } } })
+              ?.response?.data?.error?.message ?? 'Login failed'}
           </p>
         )}
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
           {mutation.isPending ? 'Signing in…' : 'Sign in'}
         </Button>
         <p className="text-sm text-center text-muted-foreground">
-          Have an invite token? <Link to="/redeem" className="underline">Redeem →</Link>
+          Have an invite token?{' '}
+          <Link to="/redeem" className="underline">
+            Redeem →
+          </Link>
         </p>
       </form>
     </div>

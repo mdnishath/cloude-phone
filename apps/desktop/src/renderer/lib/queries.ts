@@ -48,7 +48,11 @@ export interface UserPublic {
   created_at: string;
 }
 
-export interface AdbInfo { host: string; port: number; command: string }
+export interface AdbInfo {
+  host: string;
+  port: number;
+  command: string;
+}
 
 export const useMeQuery = () =>
   useQuery({
@@ -90,40 +94,59 @@ export const useAdbInfoQuery = (id: string | undefined) =>
   });
 
 interface CreateProxyBody {
-  label: string; type: 'socks5' | 'http'; host: string; port: number;
-  username?: string | null; password?: string | null;
+  label: string;
+  type: 'socks5' | 'http';
+  host: string;
+  port: number;
+  username?: string | null;
+  password?: string | null;
 }
 
 export const useCreateProxy = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: CreateProxyBody) => (await getApi().post<Proxy>('/api/v1/proxies', body)).data,
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['proxies'] }); },
+    mutationFn: async (body: CreateProxyBody) =>
+      (await getApi().post<Proxy>('/api/v1/proxies', body)).data,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['proxies'] });
+    },
   });
 };
 
 export const useDeleteProxy = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => { await getApi().delete(`/api/v1/proxies/${id}`); },
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['proxies'] }); },
+    mutationFn: async (id: string) => {
+      await getApi().delete(`/api/v1/proxies/${id}`);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['proxies'] });
+    },
   });
 };
 
-interface CreateDeviceBody { name: string; profile_id: string; proxy_id: string }
+interface CreateDeviceBody {
+  name: string;
+  profile_id: string;
+  proxy_id: string;
+}
 
 export const useCreateDevice = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: CreateDeviceBody) => (await getApi().post<Device>('/api/v1/devices', body)).data,
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['devices'] }); },
+    mutationFn: async (body: CreateDeviceBody) =>
+      (await getApi().post<Device>('/api/v1/devices', body)).data,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['devices'] });
+    },
   });
 };
 
 const deviceAction = (verb: 'start' | 'stop') => () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => (await getApi().post<Device>(`/api/v1/devices/${id}/${verb}`)).data,
+    mutationFn: async (id: string) =>
+      (await getApi().post<Device>(`/api/v1/devices/${id}/${verb}`)).data,
     onSuccess: (_data, id) => {
       void qc.invalidateQueries({ queryKey: ['devices'] });
       void qc.invalidateQueries({ queryKey: ['device', id] });
@@ -137,12 +160,20 @@ export const useStopDevice = deviceAction('stop');
 export const useDeleteDevice = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => { await getApi().delete(`/api/v1/devices/${id}`); },
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['devices'] }); },
+    mutationFn: async (id: string) => {
+      await getApi().delete(`/api/v1/devices/${id}`);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['devices'] });
+    },
   });
 };
 
-interface AuthResponse { access: string; refresh: string; token_type: string }
+interface AuthResponse {
+  access: string;
+  refresh: string;
+  token_type: string;
+}
 
 export const useLoginMutation = () =>
   useMutation({

@@ -10,8 +10,12 @@ export const getApi = (): AxiosInstance => {
   instance = createApi({
     baseURL: useSettingsStore.getState().prefs.backendUrl,
     getTokens: () => useAuthStore.getState().tokens,
-    setTokens: (t) => { void saveAuth(t); },
-    clearTokens: () => { void clearAuth(); },
+    setTokens: (t) => {
+      void saveAuth(t);
+    },
+    clearTokens: () => {
+      void clearAuth();
+    },
   });
   // Reconfigure baseURL whenever settings change.
   useSettingsStore.subscribe((state) => {

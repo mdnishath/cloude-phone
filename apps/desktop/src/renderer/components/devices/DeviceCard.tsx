@@ -17,7 +17,9 @@ export const DeviceCard = ({ device, profile }: Props): JSX.Element => (
           <div>
             <CardTitle>{device.name}</CardTitle>
             <CardDescription>
-              {profile ? `${profile.manufacturer} ${profile.model} · ${profile.screen_width}×${profile.screen_height}` : '…'}
+              {profile
+                ? `${profile.manufacturer} ${profile.model} · ${profile.screen_width}×${profile.screen_height}`
+                : '…'}
             </CardDescription>
           </div>
           <StateBadge state={device.state} />
@@ -27,8 +29,8 @@ export const DeviceCard = ({ device, profile }: Props): JSX.Element => (
         {device.started_at && device.state === 'running'
           ? `Running since ${formatRelativeTime(device.started_at)}`
           : device.stopped_at
-          ? `Stopped ${formatRelativeTime(device.stopped_at)}`
-          : `Created ${formatRelativeTime(device.created_at)}`}
+            ? `Stopped ${formatRelativeTime(device.stopped_at)}`
+            : `Created ${formatRelativeTime(device.created_at)}`}
       </CardContent>
     </Card>
   </Link>

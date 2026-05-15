@@ -12,7 +12,12 @@ interface RetryFlag extends InternalAxiosRequestConfig {
   __retried?: boolean;
 }
 
-export const createApi = ({ baseURL, getTokens, setTokens, clearTokens }: ApiOptions): AxiosInstance => {
+export const createApi = ({
+  baseURL,
+  getTokens,
+  setTokens,
+  clearTokens,
+}: ApiOptions): AxiosInstance => {
   const instance = axios.create({ baseURL, headers: { 'content-type': 'application/json' } });
 
   instance.interceptors.request.use((config) => {
@@ -41,7 +46,10 @@ export const createApi = ({ baseURL, getTokens, setTokens, clearTokens }: ApiOpt
           `${baseURL}/api/v1/auth/refresh`,
           { refresh: tokens.refresh }
         );
-        const newTokens: TokenPair = { access: refreshed.data.access, refresh: refreshed.data.refresh };
+        const newTokens: TokenPair = {
+          access: refreshed.data.access,
+          refresh: refreshed.data.refresh,
+        };
         setTokens(newTokens);
         original.headers.set('Authorization', `Bearer ${newTokens.access}`);
         return instance.request(original);

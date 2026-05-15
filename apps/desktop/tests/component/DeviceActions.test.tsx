@@ -8,8 +8,16 @@ import type { Device } from '@/lib/queries';
 vi.mock('@/lib/api-client', () => ({ getApi: () => ({ post: vi.fn(), delete: vi.fn() }) }));
 
 const makeDevice = (state: Device['state']): Device => ({
-  id: 'id1', name: 'd', profile_id: 'p', proxy_id: 'r', state,
-  state_reason: null, adb_host_port: 40000, created_at: '2026', started_at: null, stopped_at: null,
+  id: 'id1',
+  name: 'd',
+  profile_id: 'p',
+  proxy_id: 'r',
+  state,
+  state_reason: null,
+  adb_host_port: 40000,
+  created_at: '2026',
+  started_at: null,
+  stopped_at: null,
 });
 
 const renderWith = (device: Device): void => {

@@ -8,5 +8,6 @@ afterEach(() => {
 
 // Stub window.api for tests that don't use msw.
 const noop = async (): Promise<unknown> => undefined;
-(globalThis as unknown as { window: typeof window }).window = (globalThis as unknown as { window: typeof window }).window ?? ({} as typeof window);
+(globalThis as unknown as { window: typeof window }).window =
+  (globalThis as unknown as { window: typeof window }).window ?? ({} as typeof window);
 (window as unknown as { api: { invoke: typeof noop } }).api = { invoke: noop };

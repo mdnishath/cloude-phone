@@ -4,7 +4,13 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useCreateProxy } from '@/lib/queries';
 
 const schema = z.object({
@@ -18,7 +24,11 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-export const ProxyForm = ({ onCreated }: { onCreated?: (proxyId: string) => void }): JSX.Element => {
+export const ProxyForm = ({
+  onCreated,
+}: {
+  onCreated?: (proxyId: string) => void;
+}): JSX.Element => {
   const create = useCreateProxy();
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -42,7 +52,9 @@ export const ProxyForm = ({ onCreated }: { onCreated?: (proxyId: string) => void
       <div className="space-y-2">
         <Label htmlFor="label">Label</Label>
         <Input id="label" {...form.register('label')} />
-        {form.formState.errors.label && <p className="text-sm text-destructive">{form.formState.errors.label.message}</p>}
+        {form.formState.errors.label && (
+          <p className="text-sm text-destructive">{form.formState.errors.label.message}</p>
+        )}
       </div>
       <div className="space-y-2">
         <Label>Type</Label>
@@ -51,7 +63,9 @@ export const ProxyForm = ({ onCreated }: { onCreated?: (proxyId: string) => void
           control={form.control}
           render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="socks5">SOCKS5</SelectItem>
                 <SelectItem value="http">HTTP CONNECT</SelectItem>
@@ -64,12 +78,16 @@ export const ProxyForm = ({ onCreated }: { onCreated?: (proxyId: string) => void
         <div className="col-span-2 space-y-2">
           <Label htmlFor="host">Host</Label>
           <Input id="host" {...form.register('host')} />
-          {form.formState.errors.host && <p className="text-sm text-destructive">{form.formState.errors.host.message}</p>}
+          {form.formState.errors.host && (
+            <p className="text-sm text-destructive">{form.formState.errors.host.message}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="port">Port</Label>
           <Input id="port" type="number" {...form.register('port')} />
-          {form.formState.errors.port && <p className="text-sm text-destructive">{form.formState.errors.port.message}</p>}
+          {form.formState.errors.port && (
+            <p className="text-sm text-destructive">{form.formState.errors.port.message}</p>
+          )}
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -84,10 +102,13 @@ export const ProxyForm = ({ onCreated }: { onCreated?: (proxyId: string) => void
       </div>
       {create.isError && (
         <p className="text-sm text-destructive" role="alert">
-          {(create.error as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error?.message ?? 'Create failed'}
+          {(create.error as { response?: { data?: { error?: { message?: string } } } }).response
+            ?.data?.error?.message ?? 'Create failed'}
         </p>
       )}
-      <Button type="submit" disabled={create.isPending}>{create.isPending ? 'Creating…' : 'Create proxy'}</Button>
+      <Button type="submit" disabled={create.isPending}>
+        {create.isPending ? 'Creating…' : 'Create proxy'}
+      </Button>
     </form>
   );
 };

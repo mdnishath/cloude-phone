@@ -9,7 +9,10 @@ export default defineConfig({
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
-    build: { outDir: 'out/preload', rollupOptions: { input: resolve(__dirname, 'src/main/preload.ts') } },
+    build: {
+      outDir: 'out/preload',
+      rollupOptions: { input: resolve(__dirname, 'src/main/preload.ts') },
+    },
   },
   renderer: {
     root: 'src/renderer',

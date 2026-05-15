@@ -20,7 +20,12 @@ export const DeviceDetail = (): JSX.Element => {
   if (deviceQ.isError || !deviceQ.data) {
     return (
       <div className="space-y-4">
-        <Button asChild variant="outline"><Link to="/devices"><ArrowLeft className="mr-2 h-4 w-4" />Back</Link></Button>
+        <Button asChild variant="outline">
+          <Link to="/devices">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Link>
+        </Button>
         <p className="text-destructive">Device not found.</p>
       </div>
     );
@@ -33,7 +38,12 @@ export const DeviceDetail = (): JSX.Element => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button asChild variant="outline" size="sm"><Link to="/devices"><ArrowLeft className="mr-2 h-4 w-4" />Back</Link></Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/devices">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Link>
+          </Button>
           <h1 className="text-2xl font-semibold">{d.name}</h1>
           <StateBadge state={d.state} />
         </div>
@@ -50,13 +60,20 @@ export const DeviceDetail = (): JSX.Element => {
         <Card>
           <CardHeader>
             <CardTitle>Profile</CardTitle>
-            <CardDescription>{profile ? `${profile.manufacturer} ${profile.model}` : '…'}</CardDescription>
+            <CardDescription>
+              {profile ? `${profile.manufacturer} ${profile.model}` : '…'}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-1 text-sm">
             {profile && (
               <>
-                <div>Resolution: {profile.screen_width}×{profile.screen_height} @ {profile.screen_dpi}dpi</div>
-                <div>RAM: {profile.ram_mb} MB · CPUs: {profile.cpu_cores}</div>
+                <div>
+                  Resolution: {profile.screen_width}×{profile.screen_height} @ {profile.screen_dpi}
+                  dpi
+                </div>
+                <div>
+                  RAM: {profile.ram_mb} MB · CPUs: {profile.cpu_cores}
+                </div>
                 <div>Android: {profile.android_version}</div>
               </>
             )}
@@ -72,7 +89,9 @@ export const DeviceDetail = (): JSX.Element => {
             {proxy && (
               <>
                 <div>Type: {proxy.type}</div>
-                <div>Endpoint: {proxy.host}:{proxy.port}</div>
+                <div>
+                  Endpoint: {proxy.host}:{proxy.port}
+                </div>
                 <div>Auth: {proxy.has_password ? 'password configured' : 'no password'}</div>
               </>
             )}

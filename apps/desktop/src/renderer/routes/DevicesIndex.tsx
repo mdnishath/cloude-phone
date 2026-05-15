@@ -14,7 +14,10 @@ export const DevicesIndex = (): JSX.Element => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Devices</h1>
         <Button asChild>
-          <Link to="/devices/new"><Plus className="mr-2 h-4 w-4" />Create device</Link>
+          <Link to="/devices/new">
+            <Plus className="mr-2 h-4 w-4" />
+            Create device
+          </Link>
         </Button>
       </div>
       {devicesQ.isLoading && <p className="text-muted-foreground">Loading…</p>}
@@ -24,7 +27,9 @@ export const DevicesIndex = (): JSX.Element => {
         </p>
       )}
       {devicesQ.data && devicesQ.data.length === 0 && (
-        <p className="text-muted-foreground">No devices yet. Click "Create device" to spawn one.</p>
+        <p className="text-muted-foreground">
+          No devices yet. Click &quot;Create device&quot; to spawn one.
+        </p>
       )}
       {devicesQ.data && devicesQ.data.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

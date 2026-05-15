@@ -43,7 +43,9 @@ export const useDeviceStatusWS = (deviceId: string | undefined): void => {
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
     const open = (): void => {
-      ws = new WebSocket(`${httpToWs(backend)}/ws/devices/${deviceId}/status?token=${encodeURIComponent(token)}`);
+      ws = new WebSocket(
+        `${httpToWs(backend)}/ws/devices/${deviceId}/status?token=${encodeURIComponent(token)}`
+      );
 
       ws.onopen = () => {
         attempt = 0;
@@ -54,9 +56,18 @@ export const useDeviceStatusWS = (deviceId: string | undefined): void => {
         try {
           const msg = JSON.parse(e.data) as DeviceStatusMessage;
           if (msg.heartbeat) return;
-          queryClient.setQueryData<{ state?: string; state_reason?: string | null; adb_host_port?: number | null } | undefined>(
-            ['device', deviceId],
-            (prev) => (prev ? { ...prev, state: msg.state ?? prev.state, state_reason: msg.state_reason ?? prev.state_reason, adb_host_port: msg.adb_host_port ?? prev.adb_host_port } : prev)
+          queryClient.setQueryData<
+            | { state?: string; state_reason?: string | null; adb_host_port?: number | null }
+            | undefined
+          >(['device', deviceId], (prev) =>
+            prev
+              ? {
+                  ...prev,
+                  state: msg.state ?? prev.state,
+                  state_reason: msg.state_reason ?? prev.state_reason,
+                  adb_host_port: msg.adb_host_port ?? prev.adb_host_port,
+                }
+              : prev
           );
           void queryClient.invalidateQueries({ queryKey: ['devices'] });
         } catch {

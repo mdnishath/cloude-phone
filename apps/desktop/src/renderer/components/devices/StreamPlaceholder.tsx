@@ -5,7 +5,9 @@ export const StreamPlaceholder = (): JSX.Element => (
   <Card>
     <CardHeader>
       <CardTitle>Live screen</CardTitle>
-      <CardDescription>Coming in P1d. For now, use scrcpy on your machine via the command above.</CardDescription>
+      <CardDescription>
+        Coming in P1d. For now, use scrcpy on your machine via the command above.
+      </CardDescription>
     </CardHeader>
     <CardContent>
       <Button disabled>Open screen</Button>

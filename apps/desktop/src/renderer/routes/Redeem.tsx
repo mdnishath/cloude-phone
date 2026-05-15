@@ -19,7 +19,10 @@ type FormValues = z.infer<typeof schema>;
 export const Redeem = (): JSX.Element => {
   const navigate = useNavigate();
   const mutation = useRedeemInviteMutation();
-  const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { token: '', email: '', password: '' } });
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { token: '', email: '', password: '' },
+  });
 
   const onSubmit = form.handleSubmit(async (values) => {
     const tokens = await mutation.mutateAsync(values);
@@ -54,14 +57,18 @@ export const Redeem = (): JSX.Element => {
         </div>
         {mutation.isError && (
           <p className="text-sm text-destructive" role="alert">
-            {(mutation.error as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message ?? 'Redeem failed'}
+            {(mutation.error as { response?: { data?: { error?: { message?: string } } } })
+              ?.response?.data?.error?.message ?? 'Redeem failed'}
           </p>
         )}
         <Button type="submit" className="w-full" disabled={mutation.isPending}>
           {mutation.isPending ? 'Redeeming…' : 'Redeem'}
         </Button>
         <p className="text-sm text-center text-muted-foreground">
-          Already have an account? <Link to="/login" className="underline">Sign in →</Link>
+          Already have an account?{' '}
+          <Link to="/login" className="underline">
+            Sign in →
+          </Link>
         </p>
       </form>
     </div>

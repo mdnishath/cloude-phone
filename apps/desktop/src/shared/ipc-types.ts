@@ -15,15 +15,18 @@ export interface Prefs {
 
 export interface IpcContract {
   'auth:bootstrap': { args: []; result: AuthBootstrapResult };
-  'auth:save':      { args: [TokenPair]; result: void };
-  'auth:clear':     { args: []; result: void };
-  'prefs:get':      { args: []; result: Prefs };
-  'prefs:set':      { args: [Partial<Prefs>]; result: Prefs };
+  'auth:save': { args: [TokenPair]; result: void };
+  'auth:clear': { args: []; result: void };
+  'prefs:get': { args: []; result: Prefs };
+  'prefs:set': { args: [Partial<Prefs>]; result: Prefs };
   'app:openExternal': { args: [string]; result: void };
 }
 
 export type IpcChannel = keyof IpcContract;
 
 export interface ApiBridge {
-  invoke<K extends IpcChannel>(channel: K, ...args: IpcContract[K]['args']): Promise<IpcContract[K]['result']>;
+  invoke<K extends IpcChannel>(
+    channel: K,
+    ...args: IpcContract[K]['args']
+  ): Promise<IpcContract[K]['result']>;
 }

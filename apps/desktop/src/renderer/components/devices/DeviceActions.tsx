@@ -1,7 +1,12 @@
 import { Button } from '@/components/ui/button';
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogTitle, AlertDialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { canStart, canStop, canDelete } from '@/lib/state-machine';
 import type { Device } from '@/lib/queries';
@@ -17,22 +22,33 @@ export const DeviceActions = ({ device }: { device: Device }): JSX.Element => {
 
   return (
     <div className="flex gap-2">
-      <Button onClick={() => start.mutate(device.id)} disabled={!canStart(device.state) || start.isPending}>
-        <Play className="mr-2 h-4 w-4" />Start
+      <Button
+        onClick={() => start.mutate(device.id)}
+        disabled={!canStart(device.state) || start.isPending}
+      >
+        <Play className="mr-2 h-4 w-4" />
+        Start
       </Button>
-      <Button variant="outline" onClick={() => stop.mutate(device.id)} disabled={!canStop(device.state) || stop.isPending}>
-        <Square className="mr-2 h-4 w-4" />Stop
+      <Button
+        variant="outline"
+        onClick={() => stop.mutate(device.id)}
+        disabled={!canStop(device.state) || stop.isPending}
+      >
+        <Square className="mr-2 h-4 w-4" />
+        Stop
       </Button>
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button variant="destructive" disabled={!canDelete(device.state)}>
-            <Trash2 className="mr-2 h-4 w-4" />Delete
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogTitle>Delete this device?</AlertDialogTitle>
           <AlertDialogDescription>
-            This stops the Android container, removes the per-device volume, and deletes the record. Apps and data inside the device are gone permanently.
+            This stops the Android container, removes the per-device volume, and deletes the record.
+            Apps and data inside the device are gone permanently.
           </AlertDialogDescription>
           <div className="flex justify-end gap-2">
             <AlertDialogCancel>Cancel</AlertDialogCancel>

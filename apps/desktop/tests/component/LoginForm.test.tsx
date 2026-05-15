@@ -8,7 +8,9 @@ import { Login } from '@/routes/Login';
 vi.mock('@/lib/api-client', () => {
   return {
     getApi: () => ({
-      post: vi.fn().mockResolvedValue({ data: { access: 'a', refresh: 'r', token_type: 'bearer' } }),
+      post: vi
+        .fn()
+        .mockResolvedValue({ data: { access: 'a', refresh: 'r', token_type: 'bearer' } }),
     }),
   };
 });
@@ -29,7 +31,9 @@ const renderLogin = (): void => {
   );
 };
 
-beforeEach(() => { vi.clearAllMocks(); });
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('Login form', () => {
   it('rejects empty email', async () => {
