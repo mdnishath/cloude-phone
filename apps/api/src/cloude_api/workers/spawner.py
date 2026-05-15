@@ -69,3 +69,40 @@ async def tear_down(
             await vol.delete()
         except aiodocker.exceptions.DockerError:
             return
+
+
+async def spawn_sidecar(
+    docker: aiodocker.Docker,
+    *,
+    name: str,
+    adb_port: int,
+    proxy_host: str,
+    proxy_port: int,
+    proxy_type: str,
+    proxy_user: str,
+    proxy_pass: str,
+    labels: dict[str, str],
+) -> str:
+    """Launch the sidecar container. Returns the container id."""
+    container = await docker.containers.run(
+        name=name,
+        config={
+            "Image": SIDECAR_IMAGE,
+            "Labels": labels,
+            "Env": [
+                f"PROXY_HOST={proxy_host}",
+                f"PROXY_PORT={proxy_port}",
+                f"PROXY_TYPE={proxy_type}",
+                f"PROXY_USER={proxy_user}",
+                f"PROXY_PASS={proxy_pass}",
+            ],
+            "ExposedPorts": {"5555/tcp": {}},
+            "HostConfig": {
+                "CapAdd": ["NET_ADMIN", "NET_RAW"],
+                "Sysctls": {"net.ipv4.ip_forward": "1"},
+                "PortBindings": {"5555/tcp": [{"HostPort": str(adb_port)}]},
+                "RestartPolicy": {"Name": "no"},
+            },
+        },
+    )
+    return str(container.id)

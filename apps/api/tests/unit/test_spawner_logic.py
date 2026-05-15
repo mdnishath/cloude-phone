@@ -85,3 +85,43 @@ async def test_tear_down_skips_volume_when_remove_volume_false() -> None:
         docker, sidecar_name="sc", redroid_name="rd", volume_name="vol", remove_volume=False
     )
     docker.volumes.get.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_spawn_sidecar_passes_expected_config() -> None:
+    docker = MagicMock(spec=aiodocker.Docker)
+    docker.containers = MagicMock()
+    fake_container = MagicMock()
+    fake_container.id = "sha256:abcdef"
+    docker.containers.run = AsyncMock(return_value=fake_container)
+
+    cid = await spawner.spawn_sidecar(
+        docker,
+        name="cloude-sidecar-aaaabbbbcccc",
+        adb_port=40500,
+        proxy_host="proxy.example.com",
+        proxy_port=1080,
+        proxy_type="socks5",
+        proxy_user="u",
+        proxy_pass="p",
+        labels={"cloude.device_id": "xx"},
+    )
+    assert cid == "sha256:abcdef"
+
+    call_kwargs = docker.containers.run.await_args.kwargs
+    assert call_kwargs["name"] == "cloude-sidecar-aaaabbbbcccc"
+    cfg = call_kwargs["config"]
+    assert cfg["Image"] == "cloude/sidecar:p0"
+    assert cfg["Labels"] == {"cloude.device_id": "xx"}
+    env = set(cfg["Env"])
+    assert "PROXY_HOST=proxy.example.com" in env
+    assert "PROXY_PORT=1080" in env
+    assert "PROXY_TYPE=socks5" in env
+    assert "PROXY_USER=u" in env
+    assert "PROXY_PASS=p" in env
+    hc = cfg["HostConfig"]
+    assert hc["CapAdd"] == ["NET_ADMIN", "NET_RAW"]
+    assert hc["Sysctls"] == {"net.ipv4.ip_forward": "1"}
+    assert hc["PortBindings"] == {"5555/tcp": [{"HostPort": "40500"}]}
+    assert hc["RestartPolicy"] == {"Name": "no"}
+    assert cfg["ExposedPorts"] == {"5555/tcp": {}}
