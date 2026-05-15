@@ -11,7 +11,7 @@ from cloude_api.enums import DeviceState
 class DeviceCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     profile_id: uuid.UUID
-    proxy_id: uuid.UUID | None = None
+    proxy_id: uuid.UUID
 
 
 class DevicePublic(BaseModel):

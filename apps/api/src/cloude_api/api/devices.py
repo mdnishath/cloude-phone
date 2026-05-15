@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
 
 from arq import create_pool
 from arq.connections import RedisSettings
@@ -32,7 +31,25 @@ async def _enqueue_create(device_id: uuid.UUID) -> None:
     s = get_settings()
     pool = await create_pool(RedisSettings.from_dsn(s.redis_url))
     try:
-        await pool.enqueue_job("create_device_stub", str(device_id))
+        await pool.enqueue_job("create_device", str(device_id))
+    finally:
+        await pool.aclose()
+
+
+async def _enqueue_stop(device_id: uuid.UUID) -> None:
+    s = get_settings()
+    pool = await create_pool(RedisSettings.from_dsn(s.redis_url))
+    try:
+        await pool.enqueue_job("stop_device", str(device_id))
+    finally:
+        await pool.aclose()
+
+
+async def _enqueue_delete(device_id: uuid.UUID) -> None:
+    s = get_settings()
+    pool = await create_pool(RedisSettings.from_dsn(s.redis_url))
+    try:
+        await pool.enqueue_job("delete_device", str(device_id))
     finally:
         await pool.aclose()
 
@@ -126,21 +143,23 @@ async def stop_device(device_id: uuid.UUID, current: CurrentUser, db: DbSession)
     d = await _get_owned(db, device_id, current.id)
     if d.state not in (DeviceState.running, DeviceState.creating):
         raise HTTPException(status.HTTP_409_CONFLICT, detail=f"cannot stop from {d.state.value}")
-    d.state = DeviceState.stopped
-    d.stopped_at = datetime.now(tz=UTC)
+    d.state = DeviceState.stopping
     await write_audit(db, user_id=current.id, action="device.stop", target_id=d.id)
     await db.commit()
     await db.refresh(d)
+    await _enqueue_stop(d.id)
     return DevicePublic.model_validate(d)
 
 
 @router.delete("/{device_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 async def delete_device(device_id: uuid.UUID, current: CurrentUser, db: DbSession) -> None:
     d = await _get_owned(db, device_id, current.id)
-    d.state = DeviceState.deleted
-    d.stopped_at = d.stopped_at or datetime.now(tz=UTC)
+    # Transient marker so listings don't show this row as still running:
+    if d.state in (DeviceState.running, DeviceState.creating):
+        d.state = DeviceState.stopping
     await write_audit(db, user_id=current.id, action="device.delete", target_id=d.id)
     await db.commit()
+    await _enqueue_delete(d.id)
 
 
 @router.get("/{device_id}/stream-token", response_model=StreamTokenResponse)
