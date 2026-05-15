@@ -1,8 +1,9 @@
 import { ipcMain, shell } from 'electron';
 import { clearTokens, loadTokens, saveTokens } from './secure-storage';
-import type { TokenPair } from '../shared/ipc-types';
+import { getPrefs, setPrefs } from './prefs-store';
+import type { Prefs, TokenPair } from '../shared/ipc-types';
 
-export const registerAuthIpc = (): void => {
+export const registerIpc = (): void => {
   ipcMain.handle('auth:bootstrap', () => {
     const tokens = loadTokens();
     return { hasToken: tokens !== null, tokens };
@@ -13,6 +14,8 @@ export const registerAuthIpc = (): void => {
   ipcMain.handle('auth:clear', () => {
     clearTokens();
   });
+  ipcMain.handle('prefs:get', () => getPrefs());
+  ipcMain.handle('prefs:set', (_e, partial: Partial<Prefs>) => setPrefs(partial));
   ipcMain.handle('app:openExternal', (_e, url: string) => {
     void shell.openExternal(url);
   });

@@ -1,6 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import { join } from 'node:path';
-import { registerAuthIpc } from './ipc';
+import { registerIpc } from './ipc';
 
 const createWindow = (): void => {
   const win = new BrowserWindow({
@@ -22,7 +22,7 @@ const createWindow = (): void => {
 };
 
 void app.whenReady().then(() => {
-  registerAuthIpc();
+  registerIpc();
   createWindow();
 });
 
