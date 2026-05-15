@@ -62,15 +62,32 @@ Cleanup: `bash scripts/p0/cleanup.sh`
 | "HTTPS proxy" / HTTP CONNECT | `http-connect` |
 | Plain HTTP proxy | `http-connect` |
 
-## Current phase: P1b (Real Device Spawn)
+## Current phase: P1c (Electron Desktop Dashboard)
 
-P1b replaces the P1a `create_device_stub` worker job with a real Docker-driven spawn flow: an arq worker brings up a sidecar (proxy + iptables) and a redroid (Android 11) container per device, allocates an ADB port from a Redis-backed free-set, and waits for `sys.boot_completed`. Stop/delete tear the pair down and release the port. A 60s cron reaps devices stuck in `creating` for more than 3 minutes. Per-device Docker named volume keeps installed apps/data across stop/start.
+P1c adds `apps/desktop/` — a native Windows dashboard built with Electron + React + TypeScript + Tailwind + shadcn/ui. It connects to the P1a+P1b backend over HTTP and subscribes to `/ws/devices/{id}/status` for live state updates. Auth tokens persist in the OS keychain via Electron `safeStorage`. Backend URL is editable in Settings (default `http://localhost:8000`). No backend changes in P1c; the only thing the dashboard can't do is show the device's screen — that's P1d.
 
-**Breaking API change vs P1a:** `POST /api/v1/devices` now REQUIRES `proxy_id` (was optional). No-proxy mode lands in a later phase.
+Full task list: [P1c plan](docs/superpowers/plans/2026-05-15-p1c-electron-dashboard.md). Design: [P1c spec](docs/superpowers/specs/2026-05-15-p1c-electron-dashboard-design.md).
 
-Full task list: [P1b plan](docs/superpowers/plans/2026-05-15-p1b-real-device-spawn.md). Design: [P1b spec](docs/superpowers/specs/2026-05-15-p1b-real-device-spawn-design.md).
+### Run the dashboard locally
 
-### Bring it up locally (WSL2 with binder loaded)
+Prereqs: the backend is already up (`docker compose up -d` per P1a/P1b). Then:
+
+```bash
+cd apps/desktop
+npm install
+npm run dev
+```
+
+A native window opens on `/login`. Mint an invite from the api container (`docker compose exec api python scripts/make_invite.py --role admin --ttl-hours 24`) and redeem it in the UI. Create a proxy, then create a device — watch the state go `creating → running` live.
+
+### Build an installer
+
+```bash
+cd apps/desktop && npm run package
+# -> dist/Cloude Phone Setup 0.1.0.exe
+```
+
+### Bring up the backend (P1a + P1b)
 
 ```bash
 cp .env.example .env
@@ -82,9 +99,6 @@ docker compose run --rm api python -m cloude_api.core.encryption keygen >> .env
 docker compose up -d --build
 docker compose exec api alembic upgrade head
 docker compose exec api python scripts/seed_profiles.py
-docker compose exec api python scripts/make_invite.py --role admin --ttl-hours 24
-# Redeem the invite, create a proxy via /api/v1/proxies, then POST /api/v1/devices
-# with both profile_id and proxy_id. Watch state: creating → running.
 ```
 
 API docs: <http://localhost:8000/api/docs>.
@@ -92,8 +106,8 @@ API docs: <http://localhost:8000/api/docs>.
 ## Phases ahead
 
 - **P1a** — FastAPI control plane, JWT auth, invite redeem, device CRUD with worker stub. ✅
-- **P1b** (this phase) — real Docker SDK device spawn, stuck-state reaper. Idle reaper + GC deferred.
-- **P1c** — Electron desktop dashboard.
+- **P1b** — real Docker SDK device spawn, stuck-state reaper. ✅
+- **P1c** (this phase) — Electron desktop dashboard (login, devices, proxies, settings) with live WS updates.
 - **P1d** — Live device screen in Electron (scrcpy / streaming bridge).
 - **P2** — public signup + Stripe + per-plan quotas + idle reaper + 7-day GC.
 - **P3+** — scale, hardening, WebRTC upgrade, device profile library.
