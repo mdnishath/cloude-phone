@@ -1,6 +1,9 @@
-import { contextBridge } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
+import type { ApiBridge, IpcChannel, IpcContract } from '../shared/ipc-types';
 
-contextBridge.exposeInMainWorld('api', {
-  // Filled in by Task 2 (IPC contract). Empty placeholder so the renderer can
-  // boot and we can verify the dev window opens.
-});
+const api: ApiBridge = {
+  invoke: <K extends IpcChannel>(channel: K, ...args: IpcContract[K]['args']) =>
+    ipcRenderer.invoke(channel, ...args) as Promise<IpcContract[K]['result']>,
+};
+
+contextBridge.exposeInMainWorld('api', api);
