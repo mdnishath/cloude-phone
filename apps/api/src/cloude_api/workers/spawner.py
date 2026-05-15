@@ -15,13 +15,33 @@ Public surface used by arq tasks:
 from __future__ import annotations
 
 import asyncio
+import json
+import logging
 import time
 import uuid
+from datetime import UTC, datetime
+from typing import Any
 
 import aiodocker
+import redis.asyncio as aioredis
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from cloude_api.config import get_settings
+from cloude_api.core.audit import write_audit
+from cloude_api.core.encryption import decrypt_password
+from cloude_api.db import async_session_factory
+from cloude_api.enums import DeviceState
+from cloude_api.models.device import Device
+from cloude_api.models.device_profile import DeviceProfile
+from cloude_api.models.proxy import Proxy
+from cloude_api.workers import port_allocator
+from cloude_api.ws.pubsub import channel_for
 
 SIDECAR_IMAGE = "cloude/sidecar:p0"
 REDROID_IMAGE = "redroid/redroid:11.0.0-latest"
+
+log = logging.getLogger("cloude.worker.spawner")
 
 
 class SpawnError(Exception):
@@ -196,3 +216,162 @@ async def wait_for_boot_completed(
         if time.monotonic() >= deadline:
             raise SpawnError(f"android boot did not complete within {timeout_s:.0f}s")
         await asyncio.sleep(2.0)
+
+
+async def _finalize_running(
+    db: AsyncSession,
+    redis: aioredis.Redis,
+    *,
+    device: Device,
+    sidecar_id: str,
+    redroid_id: str,
+    adb_port: int,
+) -> None:
+    """Flip the device row to 'running' with all spawn metadata and publish to ws."""
+    device.state = DeviceState.running
+    device.state_reason = None
+    device.adb_host_port = adb_port
+    device.sidecar_container_id = sidecar_id[:64]
+    device.redroid_container_id = redroid_id[:64]
+    device.started_at = datetime.now(tz=UTC)
+    await db.commit()
+    payload = json.dumps(
+        {
+            "device_id": str(device.id),
+            "state": device.state.value,
+            "state_reason": None,
+            "adb_host_port": adb_port,
+        }
+    )
+    await redis.publish(channel_for(str(device.id)), payload)
+
+
+async def _finalize_error(
+    db: AsyncSession,
+    redis: aioredis.Redis,
+    *,
+    device: Device,
+    reason: str,
+) -> None:
+    """Flip the device row to 'error' with a human reason, audit, publish."""
+    device.state = DeviceState.error
+    device.state_reason = reason
+    device.adb_host_port = None
+    await write_audit(
+        db,
+        user_id=device.user_id,
+        action="device.spawn_failed",
+        target_id=device.id,
+        metadata={"reason": reason},
+    )
+    await db.commit()
+    payload = json.dumps(
+        {
+            "device_id": str(device.id),
+            "state": device.state.value,
+            "state_reason": reason,
+            "adb_host_port": None,
+        }
+    )
+    await redis.publish(channel_for(str(device.id)), payload)
+
+
+async def create_device(ctx: dict[str, Any], device_id_str: str) -> dict[str, Any]:
+    """arq task: spawn one sidecar+redroid pair for the given device row."""
+    docker: aiodocker.Docker = ctx["docker"]
+    redis: aioredis.Redis = ctx["redis"]
+    device_id = uuid.UUID(device_id_str)
+    settings = get_settings()
+
+    async with async_session_factory() as db:
+        d = await db.scalar(select(Device).where(Device.id == device_id))
+        if d is None:
+            log.warning("create_device: device %s missing", device_id)
+            return {"ok": False, "reason": "device_missing"}
+        if d.state != DeviceState.creating:
+            log.info("create_device: device %s state=%s, no-op", device_id, d.state)
+            return {"ok": True, "noop": True, "state": d.state.value}
+
+        profile = await db.scalar(
+            select(DeviceProfile).where(DeviceProfile.id == d.profile_id)
+        )
+        if d.proxy_id is None:
+            await _finalize_error(db, redis, device=d, reason="no proxy assigned")
+            return {"ok": False, "reason": "no proxy"}
+        proxy = await db.scalar(select(Proxy).where(Proxy.id == d.proxy_id))
+        if profile is None or proxy is None:
+            await _finalize_error(db, redis, device=d, reason="profile or proxy gone")
+            return {"ok": False, "reason": "profile_or_proxy_missing"}
+
+        proxy_password = (
+            decrypt_password(
+                proxy.password_encrypted,
+                pub_b64=settings.encryption_public_key,
+                priv_b64=settings.encryption_private_key,
+            )
+            if proxy.password_encrypted
+            else ""
+        )
+
+        port = await port_allocator.acquire(redis)
+        if port is None:
+            await _finalize_error(db, redis, device=d, reason="port pool exhausted")
+            return {"ok": False, "reason": "port_exhausted"}
+
+        sidecar_name, redroid_name, volume_name, labels = render_names(d.id)
+        sidecar_id = ""
+        redroid_id = ""
+        try:
+            try:
+                await docker.volumes.create({"Name": volume_name})
+            except aiodocker.exceptions.DockerError as e:
+                if e.status != 409:  # 409 = already exists, idempotent
+                    raise SpawnError(f"volume create failed: {e}") from e
+
+            sidecar_id = await spawn_sidecar(
+                docker,
+                name=sidecar_name,
+                adb_port=port,
+                proxy_host=proxy.host,
+                proxy_port=proxy.port,
+                proxy_type=proxy.type.value,
+                proxy_user=proxy.username or "",
+                proxy_pass=proxy_password,
+                labels=labels | {"cloude.role": "sidecar"},
+            )
+            await wait_for_sidecar_healthy(docker, sidecar_name)
+
+            redroid_id = await spawn_redroid(
+                docker,
+                name=redroid_name,
+                sidecar_name=sidecar_name,
+                volume=volume_name,
+                width=profile.screen_width,
+                height=profile.screen_height,
+                dpi=profile.screen_dpi,
+                ram_mb=profile.ram_mb,
+                cpus=profile.cpu_cores,
+                model=profile.model,
+                manufacturer=profile.manufacturer,
+                labels=labels | {"cloude.role": "redroid"},
+            )
+            await wait_for_boot_completed(docker, redroid_name)
+        except SpawnError as e:
+            log.warning("spawn failed for %s: %s", device_id, e)
+            await tear_down(
+                docker,
+                sidecar_name=sidecar_name,
+                redroid_name=redroid_name,
+                volume_name=volume_name,
+                remove_volume=False,
+            )
+            await port_allocator.release(redis, port)
+            await _finalize_error(db, redis, device=d, reason=str(e))
+            return {"ok": False, "reason": str(e)}
+
+        await _finalize_running(
+            db, redis, device=d,
+            sidecar_id=sidecar_id, redroid_id=redroid_id, adb_port=port,
+        )
+        log.info("create_device done: %s on port %d", device_id, port)
+        return {"ok": True, "state": "running", "adb_host_port": port}

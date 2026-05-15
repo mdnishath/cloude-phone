@@ -256,3 +256,63 @@ async def test_wait_for_boot_completed_raises_on_timeout(
 
     with pytest.raises(spawner.SpawnError, match="boot did not complete"):
         await spawner.wait_for_boot_completed(docker, "rd", timeout_s=0.0)
+
+
+@pytest.mark.asyncio
+async def test_finalize_running_updates_row_and_publishes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Given a Device row in 'creating', _finalize_running transitions it to 'running'
+    with the right metadata and publishes one ws status message."""
+    import json
+    import uuid as _uuid
+    from datetime import datetime
+
+    from cloude_api.enums import DeviceState
+    from cloude_api.models.device import Device
+
+    # Hand-built row (no DB write, no flush)
+    d = Device(
+        id=_uuid.uuid4(),
+        user_id=_uuid.uuid4(),
+        name="t",
+        profile_id=_uuid.uuid4(),
+        proxy_id=None,
+        state=DeviceState.creating,
+    )
+
+    commits: list[str] = []
+
+    class FakeDb:
+        async def commit(self) -> None:
+            commits.append("c")
+
+        async def refresh(self, *_a: object, **_kw: object) -> None:
+            return None
+
+    published: list[tuple[str, str]] = []
+
+    class FakeRedis:
+        async def publish(self, channel: str, payload: str) -> int:
+            published.append((channel, payload))
+            return 1
+
+    await spawner._finalize_running(
+        FakeDb(),  # type: ignore[arg-type]
+        FakeRedis(),  # type: ignore[arg-type]
+        device=d,
+        sidecar_id="sha256:sidecarid",
+        redroid_id="sha256:redroidid",
+        adb_port=40123,
+    )
+
+    assert d.state == DeviceState.running
+    assert d.adb_host_port == 40123
+    assert d.sidecar_container_id == "sha256:sidecarid"
+    assert d.redroid_container_id == "sha256:redroidid"
+    assert d.started_at is not None and isinstance(d.started_at, datetime)
+    assert commits == ["c"]
+    assert len(published) == 1
+    channel, payload = published[0]
+    assert channel == f"ws:device:{d.id}"
+    parsed = json.loads(payload)
+    assert parsed["state"] == "running"
+    assert parsed["adb_host_port"] == 40123
